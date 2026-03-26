@@ -24,10 +24,10 @@ conda activate cv
 
 ### 2. Download DAVIS 2017 Dataset
 
-Download the DAVIS 2017 Semi-supervised TrainVal (480p) and extract to `data/DAVIS/`:
+Download the DAVIS 2017 Semi-supervised TrainVal (480p) and extract to `../data/DAVIS/`:
 
 ```
-data/DAVIS/
+../data/DAVIS/
 ├── JPEGImages/480p/<sequence_name>/
 └── Annotations/480p/<sequence_name>/
 ```
@@ -68,10 +68,10 @@ python run.py --davis --config configs/custom.yaml
 
 ```bash
 # Evaluate all processed sequences
-python evaluate.py --pred results --davis-root data/DAVIS
+python evaluate.py --pred results --davis-root ../data/DAVIS
 
 # Save results as JSON
-python evaluate.py --pred results --davis-root data/DAVIS --save-json results/metrics.json
+python evaluate.py --pred results --davis-root ../data/DAVIS --save-json results/metrics.json
 ```
 
 ### Metrics

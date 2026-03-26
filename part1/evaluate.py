@@ -6,13 +6,13 @@ Evaluate pipeline outputs against DAVIS ground truth.
 
 Usage:
     # Evaluate default sequences (bmx-trees, tennis)
-    python evaluate.py --pred results --davis-root data/DAVIS
+    python evaluate.py --pred results --davis-root ../data/DAVIS
 
     # Evaluate all sequences found in results/
-    python evaluate.py --pred results --davis-root data/DAVIS --all
+    python evaluate.py --pred results --davis-root ../data/DAVIS --all
 
     # Evaluate specific sequences
-    python evaluate.py --pred results --davis-root data/DAVIS --sequences bmx-trees tennis car-shadow
+    python evaluate.py --pred results --davis-root ../data/DAVIS --sequences bmx-trees tennis car-shadow
 """
 
 import argparse
@@ -33,7 +33,7 @@ def main():
     )
     parser.add_argument(
         "--davis-root", "-d",
-        default="data/DAVIS",
+        default="../data/DAVIS",
         help="Root directory of DAVIS dataset.",
     )
     parser.add_argument(

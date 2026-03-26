@@ -32,7 +32,7 @@ spatial_inpaint:
 
 # --- DAVIS Dataset ---
 davis:
-  root: "data/DAVIS"              # Path to DAVIS dataset root
+  root: "../data/DAVIS"              # Path to DAVIS dataset root
   resolution: "480p"              # "480p" or "Full-Resolution"
   sequences:                      # Sequences to process (empty = all)
     - "bmx-trees"
