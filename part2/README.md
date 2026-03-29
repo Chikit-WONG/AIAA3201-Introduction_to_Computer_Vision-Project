@@ -134,6 +134,40 @@ results/<method>/<sequence>/
 | **PSNR** | Video Quality | Peak Signal-to-Noise Ratio |
 | **SSIM** | Video Quality | Structural Similarity Index |
 
+## Experiment Results
+
+Evaluated on DAVIS 2017 validation set mandatory sequences (`bmx-trees`, `tennis`) using an NVIDIA A40 GPU.
+
+### Quantitative Comparison
+
+| Pipeline | Sequence | JM ↑ | JR ↑ | PSNR ↑ | SSIM ↑ |
+|----------|----------|-------|-------|--------|--------|
+| **VGGT4D + ProPainter** | bmx-trees | 0.0306 | 0.0000 | 16.06 | 0.5713 |
+| **VGGT4D + ProPainter** | tennis | 0.0354 | 0.0000 | 21.98 | 0.7854 |
+| **VGGT4D + ProPainter** | **Average** | **0.0330** | **0.0000** | **19.02** | **0.6783** |
+| **SAM 2 + ProPainter** | bmx-trees | 0.7412 | 0.9500 | 27.25 | 0.9744 |
+| **SAM 2 + ProPainter** | tennis | 0.9354 | 1.0000 | 22.21 | 0.9528 |
+| **SAM 2 + ProPainter** | **Average** | **0.8383** | **0.9750** | **24.73** | **0.9636** |
+
+Full results saved in `results/comparison_metrics.json`.
+
+### Runtime
+
+| Pipeline | Sequence | Mask Extraction | Inpainting | Total |
+|----------|----------|----------------|------------|-------|
+| VGGT4D + ProPainter | bmx-trees (80 frames) | 55.3s | 49.1s | 104.4s |
+| VGGT4D + ProPainter | tennis (70 frames) | 28.9s | 38.9s | 67.8s |
+| SAM 2 + ProPainter | bmx-trees (80 frames) | 28.8s | 52.4s | 81.2s |
+| SAM 2 + ProPainter | tennis (70 frames) | 8.5s | 36.5s | 45.0s |
+
+### Analysis
+
+**Pipeline B (SAM 2 + ProPainter)** significantly outperforms Pipeline A on mask quality (JM: 0.84 vs 0.03). SAM 2 is a purpose-built video segmentation model that leverages ground-truth first-frame prompts to track objects reliably across the video. The high-quality masks lead to accurate inpainting by ProPainter, achieving strong PSNR and SSIM scores.
+
+**Pipeline A (VGGT4D + ProPainter)** produces near-zero mask quality (JM: 0.033, JR: 0.000). VGGT4D is primarily designed for 4D scene reconstruction; its dynamic mask output is a secondary by-product derived from depth confidence thresholding, which is not reliable for foreground segmentation. As a result, ProPainter receives incorrect masks and cannot perform meaningful inpainting.
+
+**Takeaway**: For the video object removal task, the quality of the mask extractor is the dominant factor. SAM 2 with first-frame GT prompts is highly effective, while using VGGT4D's depth-confidence fallback is insufficient. Potential improvement for VGGT4D: use its motion cues as prompts for SAM 2/SAM 3 to obtain accurate masks (Part 3 Direction A).
+
 ## References
 
 - **VGGT4D**: Hu et al., "Mining Motion Cues in Visual Geometry Transformers for 4D Scene Reconstruction", arXiv:2511.19971
