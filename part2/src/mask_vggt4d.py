@@ -63,9 +63,9 @@ class VGGT4DMaskExtractor:
         print(f"[VGGT4D] Processing {len(frame_paths)} frames from {frames_dir}")
 
         # Load and preprocess images
+        # Note: VGGTFor4D.forward() internally handles unsqueeze(0) for 4D input [S,3,H,W]
+        # The inference() function expects unbatched images [S,3,H,W]
         images = load_and_preprocess_images(frame_paths, mode="crop")
-        if images.dim() == 4:
-            images = images.unsqueeze(0)  # Add batch dimension [1, S, 3, H, W]
         images = images.to(self.device)
 
         # Run inference
@@ -74,21 +74,21 @@ class VGGT4DMaskExtractor:
         )
 
         # Extract dynamic masks from attention-based Gram similarity
-        # The model produces dynamic masks via attention mining
+        # After inference(), all predictions are numpy arrays with batch dim squeezed
         if "dynamic_masks" in predictions:
-            dyn_masks = predictions["dynamic_masks"]  # [B, S, H, W]
+            dyn_masks = predictions["dynamic_masks"]  # [S, H, W] numpy
         else:
             # Fallback: compute masks from depth confidence
             depth_conf = predictions.get("depth_conf", None)
             if depth_conf is not None:
-                # High confidence = static, low confidence = dynamic
-                if depth_conf.dim() == 5:
-                    depth_conf = depth_conf.squeeze(-1)  # [B, S, H, W]
-                conf_np = depth_conf[0].cpu().numpy()  # [S, H, W]
+                # depth_conf is numpy array [S, H, W] or [S, H, W, 1]
+                if depth_conf.ndim == 4:
+                    depth_conf = depth_conf.squeeze(-1)  # [S, H, W]
                 # Use Otsu thresholding per frame to separate dynamic/static
+                # High confidence = static, low confidence = dynamic
                 dyn_masks_list = []
-                for i in range(conf_np.shape[0]):
-                    conf_frame = conf_np[i]
+                for i in range(depth_conf.shape[0]):
+                    conf_frame = depth_conf[i]
                     # Normalize to 0-255
                     conf_norm = ((conf_frame - conf_frame.min()) /
                                  (conf_frame.max() - conf_frame.min() + 1e-8) * 255).astype(np.uint8)
@@ -98,10 +98,12 @@ class VGGT4DMaskExtractor:
                                            cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                     dyn_masks_list.append(mask)
                 dyn_masks = np.stack(dyn_masks_list, axis=0)  # [S, H, W]
-                dyn_masks = torch.from_numpy(dyn_masks).unsqueeze(0)  # [1, S, H, W]
 
         if isinstance(dyn_masks, torch.Tensor):
-            dyn_masks = dyn_masks[0].cpu().numpy()  # [S, H, W]
+            dyn_masks = dyn_masks.cpu().numpy()
+        # Ensure dyn_masks is [S, H, W]
+        if dyn_masks.ndim == 4:
+            dyn_masks = dyn_masks[0]
 
         # Read original frame dimensions for resizing
         sample_frame = cv2.imread(frame_paths[0])

@@ -1,7 +1,13 @@
 *.pt
+*.pth
 *.pyc
 __pycache__/
 data/
 results/
 results_no_temporal/
 external/
+no_git/
+temp/
+*.code-workspace
+slurm-*.out
+.claude/

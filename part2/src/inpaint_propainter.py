@@ -57,6 +57,7 @@ class ProPainterInpainter:
             "--neighbor_length", str(self.neighbor_length),
             "--ref_stride", str(self.ref_stride),
             "--subvideo_length", str(self.subvideo_length),
+            "--save_frames",
         ]
         if self.fp16:
             cmd.append("--fp16")

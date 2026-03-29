@@ -16,6 +16,11 @@ This project implements two advanced video object removal pipelines and compares
 ### 1. Create Conda Environment
 
 ```bash
+conda env create -f environment.yml
+conda activate cv2
+```
+or
+```bash
 conda create -n cv2 python=3.10 -y
 conda activate cv2
 pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu118
@@ -42,6 +47,36 @@ python run.py --method sam2 --gpu 4
 # Process specific sequences only
 python run.py --method sam2 --sequences bmx-trees tennis --gpu 4
 ```
+
+### Running on SLURM Cluster
+
+If you are running on a SLURM-managed HPC cluster (e.g., HKUST-GZ HPC), use the provided SLURM scripts instead of running `python run.py` directly on the login node. GPU resources must be requested via SLURM job submission.
+
+```bash
+# Submit Pipeline B (SAM2 + ProPainter) on mandatory sequences
+sbatch slurm_sam2.sh
+
+# Submit Pipeline A (VGGT4D + ProPainter) on mandatory sequences
+sbatch slurm_vggt4d.sh
+
+# Submit all 30 DAVIS sequences (may need longer partition if >30 min)
+sbatch slurm_sam2_all.sh
+sbatch slurm_vggt4d_all.sh
+
+# Monitor job status
+squeue -u $USER
+
+# Check output logs
+cat temp/sam2_output.txt
+cat temp/sam2_err.txt
+```
+
+**Notes:**
+- The SLURM scripts use the `debug` partition with a 30-minute time limit and 1 GPU.
+- Under SLURM `--gres=gpu:1`, the allocated GPU is always device 0, so `--gpu 0` is used.
+- If processing all 30 sequences exceeds the 30-minute limit, split sequences across multiple jobs using `--sequences seq1 seq2 ...`.
+- For longer jobs, consider using a different partition (e.g., `i64m1tga800u` for up to 7 days).
+- Evaluation does not require a GPU and can be run on the login node or via `sbatch slurm_eval.sh`.
 
 ### 4. Evaluate
 

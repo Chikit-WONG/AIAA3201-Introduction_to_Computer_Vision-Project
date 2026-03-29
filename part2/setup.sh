@@ -17,7 +17,7 @@ echo "============================================"
 # --- VGGT4D ---
 if [ ! -d "$EXTERNAL_DIR/VGGT4D" ]; then
     echo "[+] Cloning VGGT4D ..."
-    git clone https://github.com/3DAgentWorld/VGGT4D.git "$EXTERNAL_DIR/VGGT4D"
+    env LD_LIBRARY_PATH="" git clone https://github.com/3DAgentWorld/VGGT4D.git "$EXTERNAL_DIR/VGGT4D"
 else
     echo "[=] VGGT4D already exists, skipping."
 fi
@@ -25,7 +25,7 @@ fi
 # --- SAM 2 ---
 if [ ! -d "$EXTERNAL_DIR/sam2" ]; then
     echo "[+] Cloning SAM 2 ..."
-    git clone https://github.com/facebookresearch/sam2.git "$EXTERNAL_DIR/sam2"
+    env LD_LIBRARY_PATH="" git clone https://github.com/facebookresearch/sam2.git "$EXTERNAL_DIR/sam2"
 else
     echo "[=] sam2 already exists, skipping."
 fi
@@ -33,7 +33,7 @@ fi
 # --- ProPainter ---
 if [ ! -d "$EXTERNAL_DIR/ProPainter" ]; then
     echo "[+] Cloning ProPainter ..."
-    git clone https://github.com/sczhou/ProPainter.git "$EXTERNAL_DIR/ProPainter"
+    env LD_LIBRARY_PATH="" git clone https://github.com/sczhou/ProPainter.git "$EXTERNAL_DIR/ProPainter"
 else
     echo "[=] ProPainter already exists, skipping."
 fi
@@ -43,20 +43,20 @@ echo "============================================"
 echo " 2. Installing SAM 2 as editable package"
 echo "============================================"
 cd "$EXTERNAL_DIR/sam2"
-pip install -e . 2>&1 | tail -5
+env LD_LIBRARY_PATH="" pip install -e . 2>&1 | tail -5
 cd "$SCRIPT_DIR"
 
 echo ""
 echo "============================================"
 echo " 3. Installing ProPainter dependencies"
 echo "============================================"
-pip install -r "$EXTERNAL_DIR/ProPainter/requirements.txt" 2>&1 | tail -5
+env LD_LIBRARY_PATH="" pip install -r "$EXTERNAL_DIR/ProPainter/requirements.txt" 2>&1 | tail -5
 
 echo ""
 echo "============================================"
 echo " 4. Installing VGGT4D dependencies"
 echo "============================================"
-pip install -r "$EXTERNAL_DIR/VGGT4D/requirements.txt" 2>&1 | tail -5
+env LD_LIBRARY_PATH="" pip install -r "$EXTERNAL_DIR/VGGT4D/requirements.txt" 2>&1 | tail -5
 
 echo ""
 echo "============================================"
