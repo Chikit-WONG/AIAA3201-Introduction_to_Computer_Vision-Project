@@ -3,7 +3,7 @@
 *.pyc
 __pycache__/
 data/
-results/
+# results/
 results_no_temporal/
 external/
 no_git/
