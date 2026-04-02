@@ -90,18 +90,22 @@ class SAM2MaskExtractor:
 
         print(f"[SAM2] Processing {len(frame_paths)} frames from {frames_dir}")
 
-        # Get first-frame GT annotation for prompts
+        # Get GT annotation for prompts (filename encodes the prompt frame index)
         gt_files = sorted(glob.glob(os.path.join(gt_ann_dir, "*.png")))
         if not gt_files:
             print(f"[SAM2] No GT annotations found in {gt_ann_dir}")
             return
 
-        prompts = self._get_prompts_from_gt(gt_files[0])
+        ann_file = gt_files[0]
+        # Parse frame index from filename: "00005.png" -> 5
+        ann_frame_idx = int(os.path.splitext(os.path.basename(ann_file))[0])
+
+        prompts = self._get_prompts_from_gt(ann_file)
         if not prompts:
-            print("[SAM2] No objects found in first-frame GT annotation")
+            print("[SAM2] No objects found in GT annotation")
             return
 
-        print(f"[SAM2] Found {len(prompts)} objects in first frame")
+        print(f"[SAM2] Found {len(prompts)} objects at frame {ann_frame_idx}")
 
         # Initialize video state using the frames directory
         # SAM2 expects a directory of JPEG frames
@@ -110,14 +114,14 @@ class SAM2MaskExtractor:
         ):
             state = self.predictor.init_state(video_path=frames_dir)
 
-            # Add prompts for each object on frame 0
+            # Add prompts for each object at the annotated frame
             for prompt in prompts:
                 strategy = self.config["sam2"].get("prompt_strategy",
                                                    "centroid_and_bbox")
                 if strategy == "centroid_and_bbox":
                     self.predictor.add_new_points_or_box(
                         inference_state=state,
-                        frame_idx=0,
+                        frame_idx=ann_frame_idx,
                         obj_id=prompt["object_id"],
                         points=prompt["points"],
                         labels=prompt["labels"],
@@ -126,14 +130,14 @@ class SAM2MaskExtractor:
                 elif strategy == "bbox":
                     self.predictor.add_new_points_or_box(
                         inference_state=state,
-                        frame_idx=0,
+                        frame_idx=ann_frame_idx,
                         obj_id=prompt["object_id"],
                         box=prompt["box"],
                     )
                 else:  # centroid only
                     self.predictor.add_new_points_or_box(
                         inference_state=state,
-                        frame_idx=0,
+                        frame_idx=ann_frame_idx,
                         obj_id=prompt["object_id"],
                         points=prompt["points"],
                         labels=prompt["labels"],

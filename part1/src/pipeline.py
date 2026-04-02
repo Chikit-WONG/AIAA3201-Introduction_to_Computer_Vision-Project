@@ -27,7 +27,8 @@ class VideoPipeline:
         tp_cfg = config["temporal_propagation"]
         self.use_temporal = tp_cfg["enabled"]
         self.window_size = tp_cfg["window_size"]
-        self.propagator = TemporalPropagator(self.window_size)
+        self.align = tp_cfg.get("align", True)
+        self.propagator = TemporalPropagator(self.window_size, align=self.align)
 
         sp_cfg = config["spatial_inpaint"]
         self.inpainter = SpatialInpainter(
@@ -95,7 +96,10 @@ class VideoPipeline:
             prev_gray = curr_gray
 
         # ---- Pass 2: inpainting ----
-        print(f"  [2/3] Inpainting ({'temporal+spatial' if self.use_temporal else 'spatial only'})...")
+        mode = "spatial only"
+        if self.use_temporal:
+            mode = f"temporal({'aligned' if self.align else 'no-align'})+spatial"
+        print(f"  [2/3] Inpainting ({mode})...")
         num_frames = len(all_frames)
 
         # Temporal propagation statistics
@@ -238,7 +242,10 @@ class VideoPipeline:
             prev_gray = curr_gray
 
         # ---- Pass 2: inpainting ----
-        print(f"  [2/3] Inpainting ({'temporal+spatial' if self.use_temporal else 'spatial only'})...")
+        mode = "spatial only"
+        if self.use_temporal:
+            mode = f"temporal({'aligned' if self.align else 'no-align'})+spatial"
+        print(f"  [2/3] Inpainting ({mode})...")
         num_frames = len(frames)
 
         for i in tqdm(range(num_frames), desc="  Inpainting", leave=False):

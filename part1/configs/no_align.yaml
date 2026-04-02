@@ -24,7 +24,7 @@ dilation:
 temporal_propagation:
   enabled: true                   # <<< CORE SWITCH: set false to disable
   window_size: 5                  # Look k frames before and after current frame
-  align: true                     # Warp neighbour frames with optical flow before copying
+  align: false                    # Warp neighbour frames with optical flow before copying
 
 # --- Spatial Inpainting Fallback ---
 spatial_inpaint:

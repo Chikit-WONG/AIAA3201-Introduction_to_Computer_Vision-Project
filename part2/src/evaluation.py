@@ -106,15 +106,22 @@ def compute_ssim_frame(pred: np.ndarray, gt: np.ndarray) -> float:
 def compute_video_quality(
     pred_frames_dir: str,
     gt_frames_dir: str,
+    masks_dir: str = None,
 ) -> dict:
     """Compute average PSNR and SSIM over a sequence.
+
+    When masks_dir is provided, also computes PSNR_masked / SSIM_masked
+    restricted to the bounding box of the predicted mask region — a fairer
+    measure of inpainting quality unaffected by the unchanged background.
 
     Args:
         pred_frames_dir: directory with inpainted frame PNGs/JPGs.
         gt_frames_dir:   directory with original frame JPGs (DAVIS JPEGImages).
+        masks_dir:       optional directory with predicted mask PNGs (0/255).
 
     Returns:
-        dict with "PSNR", "SSIM", "num_frames".
+        dict with "PSNR", "SSIM", "num_frames", and optionally
+        "PSNR_masked", "SSIM_masked".
     """
     gt_files = sorted(
         glob.glob(os.path.join(gt_frames_dir, "*.jpg"))
@@ -124,6 +131,8 @@ def compute_video_quality(
         return {"PSNR": 0.0, "SSIM": 0.0, "num_frames": 0}
 
     psnrs, ssims = [], []
+    psnrs_m, ssims_m = [], []
+
     for gt_path in gt_files:
         fname = os.path.splitext(os.path.basename(gt_path))[0]
         pred_path = None
@@ -147,14 +156,33 @@ def compute_video_quality(
         psnrs.append(compute_psnr_frame(pred_frame, gt_frame))
         ssims.append(compute_ssim_frame(pred_frame, gt_frame))
 
+        # Mask-restricted metrics
+        if masks_dir is not None:
+            mask_path = os.path.join(masks_dir, fname + ".png")
+            if os.path.exists(mask_path):
+                mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+                if mask is not None and np.any(mask > 127):
+                    ys, xs = np.where(mask > 127)
+                    y0, y1 = ys.min(), ys.max() + 1
+                    x0, x1 = xs.min(), xs.max() + 1
+                    pred_crop = pred_frame[y0:y1, x0:x1]
+                    gt_crop = gt_frame[y0:y1, x0:x1]
+                    if pred_crop.size > 0 and min(pred_crop.shape[:2]) >= 7:
+                        psnrs_m.append(compute_psnr_frame(pred_crop, gt_crop))
+                        ssims_m.append(compute_ssim_frame(pred_crop, gt_crop))
+
     if not psnrs:
         return {"PSNR": 0.0, "SSIM": 0.0, "num_frames": 0}
 
-    return {
+    result = {
         "PSNR": float(np.mean(psnrs)),
         "SSIM": float(np.mean(ssims)),
         "num_frames": len(psnrs),
     }
+    if psnrs_m:
+        result["PSNR_masked"] = float(np.mean(psnrs_m))
+        result["SSIM_masked"] = float(np.mean(ssims_m))
+    return result
 
 
 # ======================================================================
@@ -184,6 +212,7 @@ def evaluate_dataset(
 
     results = {}
     all_jm, all_jr, all_psnr, all_ssim = [], [], [], []
+    all_psnr_m, all_ssim_m = [], []
 
     for seq in sequences:
         pred_masks_dir = os.path.join(pred_root, seq, "masks")
@@ -204,14 +233,25 @@ def evaluate_dataset(
             seq_result["JR"] = None
 
         if os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
-            vid_metrics = compute_video_quality(pred_frames_dir, gt_frames_dir)
+            masks_dir_arg = pred_masks_dir if os.path.isdir(pred_masks_dir) else None
+            vid_metrics = compute_video_quality(pred_frames_dir, gt_frames_dir, masks_dir=masks_dir_arg)
             seq_result["PSNR"] = vid_metrics["PSNR"]
             seq_result["SSIM"] = vid_metrics["SSIM"]
             all_psnr.append(vid_metrics["PSNR"])
             all_ssim.append(vid_metrics["SSIM"])
+            if "PSNR_masked" in vid_metrics:
+                seq_result["PSNR_masked"] = vid_metrics["PSNR_masked"]
+                seq_result["SSIM_masked"] = vid_metrics["SSIM_masked"]
+                all_psnr_m.append(vid_metrics["PSNR_masked"])
+                all_ssim_m.append(vid_metrics["SSIM_masked"])
+            else:
+                seq_result["PSNR_masked"] = None
+                seq_result["SSIM_masked"] = None
         else:
             seq_result["PSNR"] = None
             seq_result["SSIM"] = None
+            seq_result["PSNR_masked"] = None
+            seq_result["SSIM_masked"] = None
 
         results[seq] = seq_result
 
@@ -220,6 +260,8 @@ def evaluate_dataset(
         "JR": float(np.mean(all_jr)) if all_jr else None,
         "PSNR": float(np.mean(all_psnr)) if all_psnr else None,
         "SSIM": float(np.mean(all_ssim)) if all_ssim else None,
+        "PSNR_masked": float(np.mean(all_psnr_m)) if all_psnr_m else None,
+        "SSIM_masked": float(np.mean(all_ssim_m)) if all_ssim_m else None,
     }
 
     return results
@@ -227,7 +269,10 @@ def evaluate_dataset(
 
 def print_results_table(results: dict):
     """Pretty-print evaluation results as a table."""
-    header = f"{'Sequence':<25} {'JM':>8} {'JR':>8} {'PSNR':>8} {'SSIM':>8}"
+    header = (
+        f"{'Sequence':<25} {'JM':>8} {'JR':>8} {'PSNR':>8} {'SSIM':>8}"
+        f" {'PSNR_m':>8} {'SSIM_m':>8}"
+    )
     print("=" * len(header))
     print(header)
     print("-" * len(header))
@@ -236,7 +281,7 @@ def print_results_table(results: dict):
         if seq == "average":
             continue
         row = f"{seq:<25}"
-        for key in ("JM", "JR", "PSNR", "SSIM"):
+        for key in ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked"):
             val = metrics.get(key)
             row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
         print(row)
@@ -244,7 +289,7 @@ def print_results_table(results: dict):
     print("-" * len(header))
     avg = results.get("average", {})
     row = f"{'AVERAGE':<25}"
-    for key in ("JM", "JR", "PSNR", "SSIM"):
+    for key in ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked"):
         val = avg.get(key)
         row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
     print(row)
@@ -256,11 +301,11 @@ def print_comparison_table(results_a: dict, results_b: dict,
     """Print side-by-side comparison of two pipelines."""
     header = (
         f"{'Sequence':<22} "
-        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6}  |  "
-        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6}"
+        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6} {'PSNRm':>7} {'SSIMm':>6}  |  "
+        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6} {'PSNRm':>7} {'SSIMm':>6}"
     )
-    sep_a = f"{'--- ' + name_a + ' ---':^30}"
-    sep_b = f"{'--- ' + name_b + ' ---':^30}"
+    sep_a = f"{'--- ' + name_a + ' ---':^42}"
+    sep_b = f"{'--- ' + name_b + ' ---':^42}"
 
     print("=" * len(header))
     print(f"{'':22} {sep_a}  |  {sep_b}")
@@ -275,19 +320,28 @@ def print_comparison_table(results_a: dict, results_b: dict,
     def _fmt(val):
         return f"{val:7.4f}" if val is not None else f"{'N/A':>7}"
 
+    keys = ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked")
+    widths = (6, 6, 7, 6, 7, 6)
+
     for seq in all_seqs:
         ma = results_a.get(seq, {})
         mb = results_b.get(seq, {})
         row = f"{seq:<22} "
-        row += f"{_fmt(ma.get('JM')):>6} {_fmt(ma.get('JR')):>6} {_fmt(ma.get('PSNR')):>7} {_fmt(ma.get('SSIM')):>6}  |  "
-        row += f"{_fmt(mb.get('JM')):>6} {_fmt(mb.get('JR')):>6} {_fmt(mb.get('PSNR')):>7} {_fmt(mb.get('SSIM')):>6}"
+        for k, w in zip(keys, widths):
+            row += f"{_fmt(ma.get(k)):>{w}} "
+        row += " |  "
+        for k, w in zip(keys, widths):
+            row += f"{_fmt(mb.get(k)):>{w}} "
         print(row)
 
     print("-" * len(header))
     aa = results_a.get("average", {})
     ab = results_b.get("average", {})
     row = f"{'AVERAGE':<22} "
-    row += f"{_fmt(aa.get('JM')):>6} {_fmt(aa.get('JR')):>6} {_fmt(aa.get('PSNR')):>7} {_fmt(aa.get('SSIM')):>6}  |  "
-    row += f"{_fmt(ab.get('JM')):>6} {_fmt(ab.get('JR')):>6} {_fmt(ab.get('PSNR')):>7} {_fmt(ab.get('SSIM')):>6}"
+    for k, w in zip(keys, widths):
+        row += f"{_fmt(aa.get(k)):>{w}} "
+    row += " |  "
+    for k, w in zip(keys, widths):
+        row += f"{_fmt(ab.get(k)):>{w}} "
     print(row)
     print("=" * len(header))

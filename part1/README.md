@@ -58,6 +58,26 @@ python run.py --davis --no-temporal --output results_no_temporal
 python run.py --input path/to/video.mp4 --output results/my_video
 ```
 
+### Running on SLURM Cluster
+
+GPU resources on the HPC cluster must be requested via SLURM. Use the provided script to process all Wild Videos in one job.
+
+```bash
+# Submit Wild Video job (6 videos: ride1-3, run1-3)
+sbatch slurm_wild.sh
+
+# Monitor job status
+squeue -u $USER
+
+# Check output logs
+cat temp/wild_output.txt
+cat temp/wild_err.txt
+```
+
+**Notes:**
+- Uses the `debug` partition (30-minute limit, 1 GPU).
+- Results are saved to `results/wild_video/<seq>/` (frames + output.mp4).
+
 ### Custom Config
 
 ```bash
@@ -125,18 +145,53 @@ Key settings in `configs/default.yaml`:
 
 ## Results
 
-### Temporal Propagation ON (default)
+Evaluated on DAVIS 2017 validation sequences (bmx-trees, tennis) using an NVIDIA A40 GPU.
+`PSNR_masked` / `SSIM_masked` are computed only inside the inpainted region (masked bounding box), giving a fairer measure of inpainting quality unaffected by the large unchanged background.
 
-| Sequence | JM | JR | PSNR | SSIM |
-|----------|------|------|-------|--------|
-| bmx-trees | 0.2671 | 0.0125 | 49.44 | 0.9784 |
-| tennis | 0.4922 | 0.4000 | 22.37 | 0.9457 |
-| **AVERAGE** | **0.3796** | **0.2063** | **35.91** | **0.9621** |
+### DAVIS 2017 — Ablation Study
 
-### Temporal Propagation OFF (spatial-only ablation)
+| Condition | Sequence | JM ↑ | JR ↑ | PSNR ↑ | SSIM ↑ | PSNR_masked ↑ | SSIM_masked ↑ |
+|-----------|----------|-------|-------|--------|--------|--------------|--------------|
+| **Spatial only** | bmx-trees | 0.2684 | 0.0125 | 49.56 | 0.9817 | 13.99 | 0.4929 |
+| **Spatial only** | tennis | 0.4924 | 0.4000 | 22.58 | 0.9471 | 14.52 | 0.6536 |
+| **Spatial only** | **Average** | **0.3804** | **0.2063** | **36.07** | **0.9644** | **14.26** | **0.5733** |
+| Temporal (no align) | bmx-trees | 0.2684 | 0.0125 | 49.35 | 0.9780 | 13.69 | 0.4080 |
+| Temporal (no align) | tennis | 0.4924 | 0.4000 | 22.37 | 0.9456 | 14.31 | 0.6437 |
+| Temporal (no align) | **Average** | **0.3804** | **0.2063** | **35.86** | **0.9618** | **14.00** | **0.5259** |
+| **Temporal + Flow Align** | bmx-trees | 0.2684 | 0.0125 | **51.51** | **0.9852** | **16.84** | **0.6054** |
+| **Temporal + Flow Align** | tennis | 0.4924 | 0.4000 | **22.54** | **0.9471** | **14.48** | **0.6545** |
+| **Temporal + Flow Align** | **Average** | **0.3804** | **0.2063** | **37.03** | **0.9662** | **15.66** | **0.6300** |
 
-| Sequence | JM | JR | PSNR | SSIM |
-|----------|------|------|-------|--------|
-| bmx-trees | 0.2671 | 0.0125 | 49.62 | 0.9819 |
-| tennis | 0.4922 | 0.4000 | 22.58 | 0.9473 |
-| **AVERAGE** | **0.3796** | **0.2063** | **36.10** | **0.9646** |
+### Analysis
+
+**Why temporal (no align) underperforms spatial-only:**
+Direct pixel copy from neighbour frames without geometric correction introduces two artefacts in sequences with camera motion (bmx-trees has ~84% temporal fill rate):
+1. Misaligned textures — the background content is correct but at the wrong position, creating sharp but wrong-position edges that are penalised more by PSNR (L2) than smooth `cv2.inpaint` blending.
+2. Ghost objects — neighbour masks are inconsistent frame-to-frame; pixels marked "clean" in a neighbour may still contain partial foreground, importing ghost artefacts.
+
+**Why temporal + optical-flow alignment is the best:**
+Before copying each neighbour frame's pixels, Farneback dense optical flow warps the neighbour to the current frame's coordinate system. This eliminates the misalignment, allowing borrowed pixels to land at geometrically correct positions. The improvement is most dramatic for bmx-trees (significant camera motion): **masked PSNR improves +3.15 dB** vs no-align (16.84 vs 13.69). For tennis (mostly static camera), the gain is smaller (+0.17 dB masked) as alignment matters less when global motion is small.
+
+### Wild Video
+
+Self-recorded footage (6 clips: ride1-3, run1-3) at HKUST(GZ) campus, processed using `slurm_wild.sh`.
+
+| Sequence | Frames | Output |
+|----------|--------|--------|
+| ride1 | 146 | `results/wild_video/ride1/output.mp4` |
+| ride2 | 84 | `results/wild_video/ride2/output.mp4` |
+| ride3 | 157 | `results/wild_video/ride3/output.mp4` |
+| run1 | 111 | `results/wild_video/run1/output.mp4` |
+| run2 | 128 | `results/wild_video/run2/output.mp4` |
+| run3 | 134 | `results/wild_video/run3/output.mp4` |
+
+Each sequence folder contains:
+```
+results/wild_video/<seq>/
+├── frames/         # Inpainted frames (PNG)
+├── masks/          # Predicted binary masks (PNG)
+├── visualization/
+└── output.mp4      # Final inpainted video
+```
+
+*(Quantitative metrics not available for Wild Video — no ground-truth annotations.)*

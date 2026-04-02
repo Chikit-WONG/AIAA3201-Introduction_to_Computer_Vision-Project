@@ -3,8 +3,8 @@
 *.pyc
 __pycache__/
 data/
-# results/
-# results_no_temporal/
+part1/results/
+part2/results/
 external/
 no_git/
 temp/

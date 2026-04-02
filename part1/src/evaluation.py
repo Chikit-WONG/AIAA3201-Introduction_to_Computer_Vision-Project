@@ -108,15 +108,22 @@ def compute_ssim_frame(pred: np.ndarray, gt: np.ndarray) -> float:
 def compute_video_quality(
     pred_frames_dir: str,
     gt_frames_dir: str,
+    masks_dir: str = None,
 ) -> dict:
     """Compute average PSNR and SSIM over a sequence.
+
+    When masks_dir is provided, also computes metrics restricted to the
+    inpainted (masked) region only — a fairer measure of inpainting quality
+    that is not diluted by the large unchanged background.
 
     Args:
         pred_frames_dir: directory with inpainted frame PNGs/JPGs.
         gt_frames_dir:   directory with original frame JPGs (DAVIS JPEGImages).
+        masks_dir:       optional directory with predicted mask PNGs (0/255).
 
     Returns:
-        dict with "PSNR", "SSIM", "num_frames".
+        dict with "PSNR", "SSIM", "num_frames", and optionally
+        "PSNR_masked", "SSIM_masked".
     """
     gt_files = sorted(
         glob.glob(os.path.join(gt_frames_dir, "*.jpg"))
@@ -126,9 +133,10 @@ def compute_video_quality(
         return {"PSNR": 0.0, "SSIM": 0.0, "num_frames": 0}
 
     psnrs, ssims = [], []
+    psnrs_m, ssims_m = [], []
+
     for gt_path in gt_files:
         fname = os.path.splitext(os.path.basename(gt_path))[0]
-        # Try multiple extensions for predicted frames
         pred_path = None
         for ext in (".png", ".jpg"):
             candidate = os.path.join(pred_frames_dir, fname + ext)
@@ -150,14 +158,34 @@ def compute_video_quality(
         psnrs.append(compute_psnr_frame(pred_frame, gt_frame))
         ssims.append(compute_ssim_frame(pred_frame, gt_frame))
 
+        # Mask-restricted metrics
+        if masks_dir is not None:
+            mask_path = os.path.join(masks_dir, fname + ".png")
+            if os.path.exists(mask_path):
+                mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+                if mask is not None and np.any(mask > 127):
+                    # Crop to bounding box of masked region for SSIM validity
+                    ys, xs = np.where(mask > 127)
+                    y0, y1 = ys.min(), ys.max() + 1
+                    x0, x1 = xs.min(), xs.max() + 1
+                    pred_crop = pred_frame[y0:y1, x0:x1]
+                    gt_crop = gt_frame[y0:y1, x0:x1]
+                    if pred_crop.size > 0 and min(pred_crop.shape[:2]) >= 7:
+                        psnrs_m.append(compute_psnr_frame(pred_crop, gt_crop))
+                        ssims_m.append(compute_ssim_frame(pred_crop, gt_crop))
+
     if not psnrs:
         return {"PSNR": 0.0, "SSIM": 0.0, "num_frames": 0}
 
-    return {
+    result = {
         "PSNR": float(np.mean(psnrs)),
         "SSIM": float(np.mean(ssims)),
         "num_frames": len(psnrs),
     }
+    if psnrs_m:
+        result["PSNR_masked"] = float(np.mean(psnrs_m))
+        result["SSIM_masked"] = float(np.mean(ssims_m))
+    return result
 
 
 # ======================================================================
@@ -197,6 +225,7 @@ def evaluate_dataset(
 
     results = {}
     all_jm, all_jr, all_psnr, all_ssim = [], [], [], []
+    all_psnr_m, all_ssim_m = [], []
 
     for seq in sequences:
         pred_masks_dir = os.path.join(pred_root, seq, "masks")
@@ -217,16 +246,26 @@ def evaluate_dataset(
             seq_result["JM"] = None
             seq_result["JR"] = None
 
-        # Video quality
+        # Video quality (full frame + mask-restricted)
         if os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
-            vid_metrics = compute_video_quality(pred_frames_dir, gt_frames_dir)
+            masks_dir_seq = pred_masks_dir if os.path.isdir(pred_masks_dir) else None
+            vid_metrics = compute_video_quality(
+                pred_frames_dir, gt_frames_dir, masks_dir=masks_dir_seq
+            )
             seq_result["PSNR"] = vid_metrics["PSNR"]
             seq_result["SSIM"] = vid_metrics["SSIM"]
+            seq_result["PSNR_masked"] = vid_metrics.get("PSNR_masked")
+            seq_result["SSIM_masked"] = vid_metrics.get("SSIM_masked")
             all_psnr.append(vid_metrics["PSNR"])
             all_ssim.append(vid_metrics["SSIM"])
+            if vid_metrics.get("PSNR_masked") is not None:
+                all_psnr_m.append(vid_metrics["PSNR_masked"])
+                all_ssim_m.append(vid_metrics["SSIM_masked"])
         else:
             seq_result["PSNR"] = None
             seq_result["SSIM"] = None
+            seq_result["PSNR_masked"] = None
+            seq_result["SSIM_masked"] = None
 
         results[seq] = seq_result
 
@@ -236,6 +275,8 @@ def evaluate_dataset(
         "JR": float(np.mean(all_jr)) if all_jr else None,
         "PSNR": float(np.mean(all_psnr)) if all_psnr else None,
         "SSIM": float(np.mean(all_ssim)) if all_ssim else None,
+        "PSNR_masked": float(np.mean(all_psnr_m)) if all_psnr_m else None,
+        "SSIM_masked": float(np.mean(all_ssim_m)) if all_ssim_m else None,
     }
 
     return results
@@ -243,7 +284,8 @@ def evaluate_dataset(
 
 def print_results_table(results: dict):
     """Pretty-print evaluation results as a table."""
-    header = f"{'Sequence':<20} {'JM':>8} {'JR':>8} {'PSNR':>8} {'SSIM':>8}"
+    KEYS = ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked")
+    header = f"{'Sequence':<20}" + "".join(f" {k:>12}" for k in KEYS)
     print("=" * len(header))
     print(header)
     print("-" * len(header))
@@ -252,16 +294,16 @@ def print_results_table(results: dict):
         if seq == "average":
             continue
         row = f"{seq:<20}"
-        for key in ("JM", "JR", "PSNR", "SSIM"):
+        for key in KEYS:
             val = metrics.get(key)
-            row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
+            row += f" {val:12.4f}" if val is not None else f" {'N/A':>12}"
         print(row)
 
     print("-" * len(header))
     avg = results.get("average", {})
     row = f"{'AVERAGE':<20}"
-    for key in ("JM", "JR", "PSNR", "SSIM"):
+    for key in KEYS:
         val = avg.get(key)
-        row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
+        row += f" {val:12.4f}" if val is not None else f" {'N/A':>12}"
     print(row)
     print("=" * len(header))
