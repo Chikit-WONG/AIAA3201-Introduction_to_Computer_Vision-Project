@@ -11,3 +11,4 @@ temp/
 *.code-workspace
 slurm-*.out
 .claude/
+presentation/
