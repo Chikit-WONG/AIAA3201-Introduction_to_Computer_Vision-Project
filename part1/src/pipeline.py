@@ -98,15 +98,30 @@ class VideoPipeline:
         print(f"  [2/3] Inpainting ({'temporal+spatial' if self.use_temporal else 'spatial only'})...")
         num_frames = len(all_frames)
 
+        # Temporal propagation statistics
+        tp_stats = {
+            "frames_with_mask": 0,
+            "frames_temporal_helped": 0,
+            "total_masked_pixels": 0,
+            "temporal_filled_pixels": 0,
+            "spatial_filled_pixels": 0,
+            "frames_fully_filled_by_temporal": 0,
+        }
+
         for i in tqdm(range(num_frames), desc="  Inpainting", leave=False):
             frame = all_frames[i]
             mask = all_masks[i]
 
-            if np.count_nonzero(mask) == 0:
+            mask_pixels = np.count_nonzero(mask)
+
+            if mask_pixels == 0:
                 # No mask – nothing to repair
                 repaired = frame
                 residual_mask = mask
             elif self.use_temporal:
+                tp_stats["frames_with_mask"] += 1
+                tp_stats["total_masked_pixels"] += mask_pixels
+
                 # Build sliding window
                 buf_start = max(0, i - self.window_size)
                 buf_end = min(num_frames, i + self.window_size + 1)
@@ -118,6 +133,17 @@ class VideoPipeline:
                 repaired, residual_mask = self.propagator.propagate(
                     frames_buf, masks_buf, center_idx,
                 )
+
+                residual_pixels = np.count_nonzero(residual_mask)
+                filled_by_temporal = mask_pixels - residual_pixels
+                tp_stats["temporal_filled_pixels"] += filled_by_temporal
+                tp_stats["spatial_filled_pixels"] += residual_pixels
+
+                if filled_by_temporal > 0:
+                    tp_stats["frames_temporal_helped"] += 1
+                if residual_pixels == 0:
+                    tp_stats["frames_fully_filled_by_temporal"] += 1
+
                 # Spatial fallback for remaining pixels
                 repaired = self.inpainter.inpaint(repaired, residual_mask)
             else:
@@ -136,6 +162,27 @@ class VideoPipeline:
             if self.save_vis:
                 vis = self._make_visualization(frame, mask, repaired)
                 cv2.imwrite(os.path.join(vis_out, fname_png), vis)
+
+        # Print temporal propagation statistics
+        if self.use_temporal:
+            print("\n  === Temporal Propagation Statistics ===")
+            fm = tp_stats["frames_with_mask"]
+            fh = tp_stats["frames_temporal_helped"]
+            ff = tp_stats["frames_fully_filled_by_temporal"]
+            tp_px = tp_stats["temporal_filled_pixels"]
+            sp_px = tp_stats["spatial_filled_pixels"]
+            total_px = tp_stats["total_masked_pixels"]
+            print(f"  Frames with mask:              {fm} / {num_frames}")
+            print(f"  Frames temporal helped:        {fh} / {fm} "
+                  f"({100*fh/fm:.1f}%)" if fm > 0 else "")
+            print(f"  Frames fully filled by temporal:{ff} / {fm} "
+                  f"({100*ff/fm:.1f}%)" if fm > 0 else "")
+            print(f"  Total masked pixels:           {total_px:,}")
+            print(f"  Filled by temporal:            {tp_px:,} "
+                  f"({100*tp_px/total_px:.1f}%)" if total_px > 0 else "")
+            print(f"  Filled by spatial fallback:    {sp_px:,} "
+                  f"({100*sp_px/total_px:.1f}%)" if total_px > 0 else "")
+            print("  ======================================\n")
 
         # ---- Pass 3: assemble video ----
         print("  [3/3] Assembling output video...")
