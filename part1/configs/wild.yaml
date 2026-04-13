@@ -1,0 +1,41 @@
+# Wild Video Configuration — same pipeline settings, different dataset root
+mask:
+  model: "yolov8n-seg.pt"
+  target_classes: [0]
+  confidence_threshold: 0.5
+  device: "cpu"
+
+dynamic_filter:
+  enabled: true
+  motion_threshold: 2.0
+  min_features: 5
+
+dilation:
+  kernel_size: 15
+  iterations: 2
+
+temporal_propagation:
+  enabled: true
+  window_size: 5
+  align: true
+
+spatial_inpaint:
+  radius: 5
+  method: "telea"
+
+davis:
+  root: "../data/Wild_Video_DAVIS"
+  resolution: "480p"
+  sequences:
+    - "ride1"
+    - "ride2"
+    - "ride3"
+    - "run1"
+    - "run2"
+    - "run3"
+
+output:
+  save_masks: true
+  save_visualization: true
+  video_fps: 24
+  video_codec: "mp4v"
