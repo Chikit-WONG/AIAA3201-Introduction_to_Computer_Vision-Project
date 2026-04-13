@@ -1,0 +1,14 @@
+*.pt
+*.pth
+*.pyc
+__pycache__/
+data/
+part1/results/
+part2/results/
+external/
+no_git/
+temp/
+*.code-workspace
+slurm-*.out
+.claude/
+presentation/

@@ -1,0 +1,71 @@
+# Part2 Default Configuration
+# ============================
+
+# DAVIS dataset
+davis:
+  root: "../data/DAVIS"
+  resolution: "480p"
+  # DAVIS 2017 validation set (30 sequences)
+  sequences:
+    - bike-packing
+    - blackswan
+    - bmx-trees
+    - breakdance
+    - camel
+    - car-roundabout
+    - car-shadow
+    - cows
+    - dance-twirl
+    - dog
+    - dogs-jump
+    - drift-chicane
+    - drift-straight
+    - goat
+    - gold-fish
+    - horsejump-high
+    - india
+    - judo
+    - kite-surf
+    - lab-coat
+    - libby
+    - loading
+    - mbike-trick
+    - motocross-jump
+    - paragliding-launch
+    - parkour
+    - pigs
+    - scooter-black
+    - shooting
+    - soapbox
+
+# Mask extraction method: "vggt4d" or "sam2"
+method: "sam2"
+
+# GPU device
+device: "cuda"
+gpu_id: 0
+
+# VGGT4D configuration
+vggt4d:
+  repo_dir: "external/VGGT4D"
+  checkpoint: "external/VGGT4D/ckpts/model_tracker_fixed_e20.pt"
+
+# SAM 2 configuration
+sam2:
+  repo_dir: "external/sam2"
+  checkpoint: "external/sam2/checkpoints/sam2.1_hiera_large.pt"
+  model_cfg: "configs/sam2.1/sam2.1_hiera_l.yaml"
+  # Prompt strategy: extract centroid and bbox from first-frame GT annotation
+  prompt_strategy: "centroid_and_bbox"
+
+# ProPainter configuration
+propainter:
+  repo_dir: "external/ProPainter"
+  weights_dir: "external/ProPainter/weights"
+  fp16: true
+  neighbor_length: 10
+  ref_stride: 10
+  subvideo_length: 80
+
+# Output
+output_root: "results"
