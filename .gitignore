@@ -3,12 +3,13 @@
 *.pyc
 __pycache__/
 data/
-part1/results/
-part2/results/
+results/
+results_no_temporal/
 external/
 no_git/
 temp/
 *.code-workspace
 slurm-*.out
 .claude/
+.codex
 presentation/
