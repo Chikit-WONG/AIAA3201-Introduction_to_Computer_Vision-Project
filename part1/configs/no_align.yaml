@@ -1,0 +1,47 @@
+# =============================================================
+# Global Configuration for Video Object Removal Pipeline
+# =============================================================
+
+# --- Mask Extraction ---
+mask:
+  model: "yolov8n-seg.pt"        # YOLOv8 segmentation model weight
+  target_classes: [0]             # COCO class IDs to detect (0=person, 1=bicycle, 2=car, ...)
+  confidence_threshold: 0.5       # Detection confidence threshold
+  device: "cpu"                   # "cuda:0" or "cpu"
+
+# --- Dynamic Filtering via Optical Flow ---
+dynamic_filter:
+  enabled: true
+  motion_threshold: 2.0           # Mean pixel displacement below this => static
+  min_features: 5                 # Minimum good features required inside a mask
+
+# --- Mask Dilation ---
+dilation:
+  kernel_size: 15                 # Morphological dilation kernel size
+  iterations: 2                   # Number of dilation iterations
+
+# --- Temporal Background Propagation (toggleable) ---
+temporal_propagation:
+  enabled: true                   # <<< CORE SWITCH: set false to disable
+  window_size: 5                  # Look k frames before and after current frame
+  align: false                    # Warp neighbour frames with optical flow before copying
+
+# --- Spatial Inpainting Fallback ---
+spatial_inpaint:
+  radius: 5                       # Inpainting radius for cv2.inpaint
+  method: "telea"                 # "telea" or "ns" (Navier-Stokes)
+
+# --- DAVIS Dataset ---
+davis:
+  root: "../data/DAVIS"              # Path to DAVIS dataset root
+  resolution: "480p"              # "480p" or "Full-Resolution"
+  sequences:                      # Sequences to process (empty = all)
+    - "bmx-trees"
+    - "tennis"
+
+# --- Output ---
+output:
+  save_masks: true                # Save per-frame predicted masks
+  save_visualization: true        # Save side-by-side comparison frames
+  video_fps: 24                   # Output video FPS
+  video_codec: "mp4v"             # FourCC codec

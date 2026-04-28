@@ -1,0 +1,22 @@
+name: cv2
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pyyaml
+  - tqdm
+  - pillow
+  - pip:
+    - torch==2.5.1 --index-url https://download.pytorch.org/whl/cu118
+    - torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu118
+    - opencv-python>=4.8.0
+    - scikit-image>=0.21.0
+    - scipy
+    - einops
+    - huggingface_hub
+    - timm
