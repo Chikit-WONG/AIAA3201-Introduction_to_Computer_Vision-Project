@@ -1,8 +1,9 @@
 """
 Evaluation Module
 =================
-Metrics: IoU mean (JM), IoU recall (JR), PSNR, SSIM.
-Supports per-sequence and aggregate evaluation on DAVIS dataset.
+Default DAVIS evaluation follows the Part 3 rule set:
+- DAVIS: JM, JR only
+- Wild / paired video metrics are handled separately elsewhere
 """
 
 import os
@@ -197,12 +198,12 @@ def evaluate_dataset(
     davis_root: str,
     resolution: str = "480p",
     sequences: list = None,
+    include_video_metrics: bool = False,
 ) -> dict:
     """Evaluate all sequences under pred_root against DAVIS ground truth.
 
     Expected directory layout under pred_root:
         <pred_root>/<seq_name>/masks/      -> predicted masks
-        <pred_root>/<seq_name>/frames/     -> inpainted frames
 
     Args:
         pred_root:  root directory of pipeline outputs.
@@ -246,8 +247,8 @@ def evaluate_dataset(
             seq_result["JM"] = None
             seq_result["JR"] = None
 
-        # Video quality (full frame + mask-restricted)
-        if os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
+        # Optional video quality metrics are disabled by default for DAVIS.
+        if include_video_metrics and os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
             masks_dir_seq = pred_masks_dir if os.path.isdir(pred_masks_dir) else None
             vid_metrics = compute_video_quality(
                 pred_frames_dir, gt_frames_dir, masks_dir=masks_dir_seq
@@ -283,8 +284,8 @@ def evaluate_dataset(
 
 
 def print_results_table(results: dict):
-    """Pretty-print evaluation results as a table."""
-    KEYS = ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked")
+    """Pretty-print DAVIS evaluation results as a table."""
+    KEYS = ("JM", "JR")
     header = f"{'Sequence':<20}" + "".join(f" {k:>12}" for k in KEYS)
     print("=" * len(header))
     print(header)

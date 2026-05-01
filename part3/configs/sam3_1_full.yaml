@@ -1,0 +1,79 @@
+# Part 3 SAM 3.1 full-run configuration
+
+project_root: ".."
+output_root: "outputs_full/sam3_1"
+device: "cuda"
+gpu_id: 0
+
+davis:
+  root: "../data/DAVIS"
+  resolution: "480p"
+  sequences:
+    - bmx-trees
+    - tennis
+  prompts:
+    bmx-trees: "person riding bicycle"
+    tennis: "tennis player"
+
+wild:
+  input_dir: "../data/Wild_Video/input_with_person"
+  clean_gt_dir: "../data/Wild_Video/clean_gt_no_person"
+  pairs:
+    Wild_Video1: "Wild_Video1-Ground_Truth"
+    Wild_Video2: "Wild_Video2-Ground_Truth"
+  prompts:
+    Wild_Video1: "person"
+    Wild_Video2: "person"
+  align_for_metrics: true
+
+sam3:
+  repo_dir: "external/repository/sam3"
+  version: "sam3.1"
+  checkpoint: "/hpc2hdd/home/ckwong627/workdir/models/sam3.1/sam3.1_multiplex.pt"
+  frame_index: 0
+  compile: false
+  async_loading_frames: false
+  use_fa3: false
+  use_rope_real: true
+
+propainter:
+  repo_dir: "../part2/external/ProPainter"
+  fp16: true
+  neighbor_length: 10
+  ref_stride: 10
+  subvideo_length: 80
+
+diffueraser:
+  repo_dir: "external/repository/DiffuEraser"
+  video_length: 17
+  mask_dilation_iter: 8
+  max_img_size: 960
+  ref_stride: 10
+  neighbor_length: 10
+  subvideo_length: 50
+  base_model_path: "/hpc2hdd/home/ckwong627/workdir/models/stable-diffusion-v1-5"
+  vae_path: "/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse"
+  diffueraser_path: "/hpc2hdd/home/ckwong627/workdir/models/diffuEraser"
+  propainter_model_dir: "../part2/external/ProPainter/weights"
+
+rose:
+  repo_dir: "external/repository/ROSE"
+  video_length: 17
+  sample_size: [480, 720]
+  model_root: "/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP"
+  transformer_root: "/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer"
+  python_bin: "/hpc2hdd/home/ckwong627/workdir/venvs/rosepart3/bin/python"
+
+side_effect:
+  enable: true
+  dilate_radius: 21
+  close_radius: 11
+  fill_holes: true
+  shadow_down_shift: 35
+  shadow_radius: 45
+  reflection_rois: []
+  mirror:
+    enable: false
+    axis: vertical
+    x_center: 0
+    roi_name: ""

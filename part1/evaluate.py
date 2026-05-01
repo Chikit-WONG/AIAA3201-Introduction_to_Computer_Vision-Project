@@ -29,7 +29,7 @@ def main():
     parser.add_argument(
         "--pred", "-p",
         required=True,
-        help="Root directory of pipeline outputs (contains <seq>/masks/ and <seq>/frames/).",
+        help="Root directory of pipeline outputs (contains <seq>/masks/).",
     )
     parser.add_argument(
         "--davis-root", "-d",
@@ -67,7 +67,6 @@ def main():
 
     sequences = args.sequences
     if not args.all and sequences is None:
-        # Default: evaluate what's available
         sequences = None  # evaluate_dataset will auto-discover
 
     print(f"DAVIS root:  {args.davis_root}")
@@ -88,10 +87,7 @@ def main():
         # Remove non-serialisable data
         serialisable = {}
         for k, v in results.items():
-            serialisable[k] = {
-                mk: mv for mk, mv in v.items()
-                if mk != "per_frame_iou"
-            }
+            serialisable[k] = {mk: mv for mk, mv in v.items() if mk != "per_frame_iou"}
         with open(args.save_json, "w", encoding="utf-8") as f:
             json.dump(serialisable, f, indent=2, ensure_ascii=False)
         print(f"\nResults saved to: {args.save_json}")

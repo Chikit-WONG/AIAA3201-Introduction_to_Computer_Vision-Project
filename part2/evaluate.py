@@ -36,7 +36,7 @@ def main():
     parser.add_argument(
         "--pred", "-p",
         required=True,
-        help="Root directory of pipeline outputs (contains <seq>/masks/ and <seq>/frames/).",
+        help="Root directory of pipeline outputs (contains <seq>/masks/).",
     )
     parser.add_argument(
         "--pred2",

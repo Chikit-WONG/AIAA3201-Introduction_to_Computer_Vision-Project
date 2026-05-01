@@ -83,6 +83,15 @@ def main():
     davis_root = config["davis"]["root"]
     resolution = config["davis"]["resolution"]
     sequences = args.sequences or config["davis"].get("sequences", [])
+    if not sequences:
+        jpeg_root = os.path.join(davis_root, "JPEGImages", resolution)
+        if not os.path.isdir(jpeg_root):
+            print(f"[ERROR] DAVIS JPEGImages not found at: {jpeg_root}")
+            return
+        sequences = sorted(
+            d for d in os.listdir(jpeg_root)
+            if os.path.isdir(os.path.join(jpeg_root, d))
+        )
 
     output_root = args.output or os.path.join(
         config.get("output_root", "results"), method

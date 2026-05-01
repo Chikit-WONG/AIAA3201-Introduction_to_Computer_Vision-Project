@@ -1,8 +1,9 @@
 """
 Evaluation Module
 =================
-Metrics: IoU mean (JM), IoU recall (JR), PSNR, SSIM.
-Supports per-sequence and aggregate evaluation on DAVIS dataset.
+Default DAVIS evaluation follows the Part 3 rule set:
+- DAVIS: JM, JR only
+- Wild / paired video metrics are handled separately elsewhere
 """
 
 import os
@@ -194,6 +195,7 @@ def evaluate_dataset(
     davis_root: str,
     resolution: str = "480p",
     sequences: list = None,
+    include_video_metrics: bool = False,
 ) -> dict:
     """Evaluate all sequences under pred_root against DAVIS ground truth.
 
@@ -232,7 +234,7 @@ def evaluate_dataset(
             seq_result["JM"] = None
             seq_result["JR"] = None
 
-        if os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
+        if include_video_metrics and os.path.isdir(pred_frames_dir) and os.path.isdir(gt_frames_dir):
             masks_dir_arg = pred_masks_dir if os.path.isdir(pred_masks_dir) else None
             vid_metrics = compute_video_quality(pred_frames_dir, gt_frames_dir, masks_dir=masks_dir_arg)
             seq_result["PSNR"] = vid_metrics["PSNR"]
@@ -268,11 +270,8 @@ def evaluate_dataset(
 
 
 def print_results_table(results: dict):
-    """Pretty-print evaluation results as a table."""
-    header = (
-        f"{'Sequence':<25} {'JM':>8} {'JR':>8} {'PSNR':>8} {'SSIM':>8}"
-        f" {'PSNR_m':>8} {'SSIM_m':>8}"
-    )
+    """Pretty-print DAVIS JM/JR results as a table."""
+    header = f"{'Sequence':<25} {'JM':>8} {'JR':>8}"
     print("=" * len(header))
     print(header)
     print("-" * len(header))
@@ -281,7 +280,7 @@ def print_results_table(results: dict):
         if seq == "average":
             continue
         row = f"{seq:<25}"
-        for key in ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked"):
+        for key in ("JM", "JR"):
             val = metrics.get(key)
             row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
         print(row)
@@ -289,7 +288,7 @@ def print_results_table(results: dict):
     print("-" * len(header))
     avg = results.get("average", {})
     row = f"{'AVERAGE':<25}"
-    for key in ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked"):
+    for key in ("JM", "JR"):
         val = avg.get(key)
         row += f" {val:8.4f}" if val is not None else f" {'N/A':>8}"
     print(row)
@@ -298,14 +297,10 @@ def print_results_table(results: dict):
 
 def print_comparison_table(results_a: dict, results_b: dict,
                            name_a: str = "VGGT4D", name_b: str = "SAM2"):
-    """Print side-by-side comparison of two pipelines."""
-    header = (
-        f"{'Sequence':<22} "
-        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6} {'PSNRm':>7} {'SSIMm':>6}  |  "
-        f"{'JM':>6} {'JR':>6} {'PSNR':>7} {'SSIM':>6} {'PSNRm':>7} {'SSIMm':>6}"
-    )
-    sep_a = f"{'--- ' + name_a + ' ---':^42}"
-    sep_b = f"{'--- ' + name_b + ' ---':^42}"
+    """Print side-by-side DAVIS JM/JR comparison of two pipelines."""
+    header = f"{'Sequence':<22} {'JM':>8} {'JR':>8}  |  {'JM':>8} {'JR':>8}"
+    sep_a = f"{'--- ' + name_a + ' ---':^20}"
+    sep_b = f"{'--- ' + name_b + ' ---':^20}"
 
     print("=" * len(header))
     print(f"{'':22} {sep_a}  |  {sep_b}")
@@ -318,10 +313,10 @@ def print_comparison_table(results_a: dict, results_b: dict,
     ))
 
     def _fmt(val):
-        return f"{val:7.4f}" if val is not None else f"{'N/A':>7}"
+        return f"{val:8.4f}" if val is not None else f"{'N/A':>8}"
 
-    keys = ("JM", "JR", "PSNR", "SSIM", "PSNR_masked", "SSIM_masked")
-    widths = (6, 6, 7, 6, 7, 6)
+    keys = ("JM", "JR")
+    widths = (8, 8)
 
     for seq in all_seqs:
         ma = results_a.get(seq, {})
