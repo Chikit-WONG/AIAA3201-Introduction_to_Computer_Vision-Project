@@ -10,6 +10,7 @@ import sys
 import glob
 import shutil
 import subprocess
+from pathlib import Path
 
 
 class ProPainterInpainter:
@@ -18,18 +19,26 @@ class ProPainterInpainter:
     def __init__(self, config: dict):
         self.config = config
         pp_cfg = config["propainter"]
-        self.repo_dir = os.path.abspath(pp_cfg["repo_dir"])
-        self.weights_dir = os.path.abspath(pp_cfg["weights_dir"])
+        self.project_root = Path(__file__).resolve().parents[1]
+        self.repo_dir = self._resolve_project_path(pp_cfg["repo_dir"])
+        weights_dir = pp_cfg.get("weights_dir")
+        if weights_dir is None:
+            weights_dir = str(Path(pp_cfg["repo_dir"]) / "weights")
+        self.weights_dir = self._resolve_project_path(weights_dir)
         self.fp16 = pp_cfg.get("fp16", True)
         self.neighbor_length = pp_cfg.get("neighbor_length", 10)
         self.ref_stride = pp_cfg.get("ref_stride", 10)
         self.subvideo_length = pp_cfg.get("subvideo_length", 80)
         self.gpu_id = config.get("gpu_id", 0)
 
-        inference_script = os.path.join(self.repo_dir, "inference_propainter.py")
-        if not os.path.isfile(inference_script):
+        inference_script = self.repo_dir / "inference_propainter.py"
+        if not inference_script.is_file():
             raise FileNotFoundError(
                 f"ProPainter inference script not found: {inference_script}"
+            )
+        if not self.weights_dir.is_dir():
+            raise FileNotFoundError(
+                f"ProPainter weights directory not found: {self.weights_dir}"
             )
 
     def inpaint(self, frames_dir: str, masks_dir: str, output_dir: str):
@@ -43,14 +52,14 @@ class ProPainterInpainter:
         """
         os.makedirs(output_dir, exist_ok=True)
 
-        inference_script = os.path.join(self.repo_dir, "inference_propainter.py")
+        inference_script = self.repo_dir / "inference_propainter.py"
 
         # ProPainter saves results to a subfolder under --output
         # We'll use a temp output and then move files
         pp_output = os.path.join(output_dir, "_propainter_tmp")
 
         cmd = [
-            sys.executable, inference_script,
+            sys.executable, str(inference_script),
             "--video", os.path.abspath(frames_dir),
             "--mask", os.path.abspath(masks_dir),
             "--output", os.path.abspath(pp_output),
@@ -69,7 +78,7 @@ class ProPainterInpainter:
         print(f"  Command: {' '.join(cmd)}")
 
         result = subprocess.run(
-            cmd, cwd=self.repo_dir, env=env,
+            cmd, cwd=str(self.repo_dir), env=env,
             capture_output=True, text=True,
         )
 
@@ -88,6 +97,13 @@ class ProPainterInpainter:
             shutil.rmtree(pp_output)
 
         print(f"[ProPainter] Inpainted frames saved to {output_dir}")
+
+    def _resolve_project_path(self, path_str: str) -> Path:
+        """Resolve config paths relative to the part2 project root."""
+        path = Path(path_str)
+        if path.is_absolute():
+            return path
+        return (self.project_root / path).resolve()
 
     def _collect_results(self, pp_output: str, target_dir: str,
                          frames_dir: str):

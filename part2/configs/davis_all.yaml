@@ -9,7 +9,7 @@ davis:
 
 sam2:
   repo_dir: "external/sam2"
-  checkpoint: "weights/sam2.1_hiera_large.pt"
+  checkpoint: "external/sam2/checkpoints/sam2.1_hiera_large.pt"
   model_cfg: "configs/sam2.1/sam2.1_hiera_l.yaml"
   frame_index: 0
   multimask_output: false
@@ -23,6 +23,7 @@ vggt4d:
 
 propainter:
   repo_dir: "external/ProPainter"
+  weights_dir: "external/ProPainter/weights"
   fp16: true
   neighbor_length: 10
   ref_stride: 10

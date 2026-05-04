@@ -1,4 +1,4 @@
-name: cv2
+name: cv-2
 channels:
   - pytorch
   - nvidia

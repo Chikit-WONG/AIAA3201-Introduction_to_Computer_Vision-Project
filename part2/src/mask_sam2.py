@@ -7,6 +7,7 @@ derived from first-frame ground truth annotations.
 
 import os
 import glob
+from pathlib import Path
 
 import numpy as np
 import cv2
@@ -19,18 +20,34 @@ class SAM2MaskExtractor:
     def __init__(self, config: dict):
         self.config = config
         self.device = torch.device(config.get("device", "cuda"))
+        self.project_root = Path(__file__).resolve().parents[1]
 
         sam2_cfg = config["sam2"]
-        checkpoint = sam2_cfg["checkpoint"]
+        checkpoint = self._resolve_project_path(sam2_cfg["checkpoint"])
         model_cfg = sam2_cfg["model_cfg"]
+
+        if not checkpoint.is_file():
+            raise FileNotFoundError(
+                f"SAM2 checkpoint not found: {checkpoint}\n"
+                "Expected a file like "
+                "'external/sam2/checkpoints/sam2.1_hiera_large.pt'. "
+                "Run setup.sh or update sam2.checkpoint in the YAML config."
+            )
 
         print(f"[SAM2] Loading model: {model_cfg} from {checkpoint} ...")
 
         from sam2.build_sam import build_sam2_video_predictor
         self.predictor = build_sam2_video_predictor(
-            model_cfg, checkpoint, device=self.device,
+            model_cfg, str(checkpoint), device=self.device,
         )
         print("[SAM2] Model loaded.")
+
+    def _resolve_project_path(self, path_str: str) -> Path:
+        """Resolve config paths relative to the part2 project root."""
+        path = Path(path_str)
+        if path.is_absolute():
+            return path
+        return (self.project_root / path).resolve()
 
     def _get_prompts_from_gt(self, gt_mask_path: str) -> list:
         """Extract point and bbox prompts from a GT annotation mask.
