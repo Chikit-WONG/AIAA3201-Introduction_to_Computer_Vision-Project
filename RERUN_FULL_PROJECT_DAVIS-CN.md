@@ -67,7 +67,7 @@ python evaluate.py --pred results_davis_full/spatial_only --davis-root ../data/D
 ```bash
 cd part2
 conda env create -f environment.yml
-conda activate cv2
+conda activate cv-2
 bash setup.sh
 ```
 
@@ -93,7 +93,7 @@ python evaluate.py --pred results_davis_full/vggt4d --davis-root ../data/DAVIS -
 ```bash
 cd part3
 conda env create -f environment.yml
-conda activate cv2
+conda activate cv3
 ```
 
 先确认外部仓库和权重都已经准备好：
