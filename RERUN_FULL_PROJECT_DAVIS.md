@@ -102,12 +102,26 @@ Prepare external repositories and checkpoints first:
 - `external/repository/DiffuEraser`
 - `external/repository/ROSE`
 - `../part2/external/ProPainter`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3/`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3.1/`
-- `/hpc2hdd/home/ckwong627/workdir/models/diffuEraser/`
-- `/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP/`
-- `/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer/`
-- `/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse/`
+- `models/sam3/`
+- `models/sam3.1/`
+- `models/diffuEraser/`
+- `models/Wan2.1-Fun-1.3B-InP/`
+- `models/ROSE_transformer/`
+- `models/sd-vae-ft-mse/`
+- `models/stable-diffusion-v1-5/`
+
+Default model download source:
+
+- Prefer `ModelScope` first.
+- If a required checkpoint is not covered by the current `ModelScope` helper, use the upstream `Hugging Face` download path described in `part3/README.md`.
+
+Recommended model preparation commands:
+
+```bash
+bash scripts/download_models.sh
+```
+
+This downloads the currently confirmed `ModelScope` items and prepares the remaining model directories under `part3/models/`.
 
 Generate DAVIS mp4 files once:
 
@@ -132,6 +146,7 @@ Notes:
 - This script uses the first-frame DAVIS annotation to initialize SAM 3 with a GT-derived bbox and point prompt.
 - For the DAVIS-only rerun, Part 3 `JM/JR` is evaluated from the mask output only.
 - Therefore, the four Part 3 method rows reuse the same object masks on DAVIS. The inpainting backend is not part of DAVIS `JM/JR`.
+- For model downloads, the default preference is `ModelScope`; `Hugging Face` remains an optional fallback for upstream-only items such as the gated `SAM 3` checkpoints.
 
 ## Build the Final Cross-Part Table
 

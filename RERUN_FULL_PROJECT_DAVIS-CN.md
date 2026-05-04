@@ -102,12 +102,26 @@ conda activate cv2
 - `external/repository/DiffuEraser`
 - `external/repository/ROSE`
 - `../part2/external/ProPainter`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3/`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3.1/`
-- `/hpc2hdd/home/ckwong627/workdir/models/diffuEraser/`
-- `/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP/`
-- `/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer/`
-- `/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse/`
+- `models/sam3/`
+- `models/sam3.1/`
+- `models/diffuEraser/`
+- `models/Wan2.1-Fun-1.3B-InP/`
+- `models/ROSE_transformer/`
+- `models/sd-vae-ft-mse/`
+- `models/stable-diffusion-v1-5/`
+
+模型下载默认规则：
+
+- 默认优先使用 `ModelScope`
+- 如果某个权重当前没有被这套 `ModelScope` helper 覆盖，再使用 `part3/README-CN.md` 里写的上游 `Hugging Face` 下载方式
+
+推荐的模型准备命令：
+
+```bash
+bash scripts/download_models.sh
+```
+
+这个脚本会先下载当前已经确认好的 `ModelScope` 模型，并在 `part3/models/` 下把其余目录也准备好。
 
 先把 DAVIS 帧目录转换成 mp4：
 
@@ -132,6 +146,7 @@ python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml -
 - 这个脚本会使用 DAVIS 第一帧的 GT mask，自动构造 bbox 和 point 来初始化 SAM 3。
 - 这次 DAVIS-only 重跑里，Part 3 的 `JM/JR` 只从 mask 输出上评估。
 - 因此 Part 3 里四种方法在 DAVIS 上会复用同一套 object masks，inpainting backend 不参与 DAVIS `JM/JR` 计算。
+- 模型下载默认优先使用 `ModelScope`；像 gated `SAM 3` 这类当前仍属于 upstream-only 的权重，再用 `Hugging Face` 作为可选补充下载源。
 
 ## 生成跨 Part 最终总表
 

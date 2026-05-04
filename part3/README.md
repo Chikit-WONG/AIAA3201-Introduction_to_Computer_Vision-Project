@@ -61,23 +61,103 @@ This matches the environment style used in Part 1 and Part 2. If your local CUDA
 bash scripts/setup_external_repos.sh
 ```
 
-This prepares the external repositories used by Part 3:
+This script clones the external repositories used by Part 3 into the exact locations expected by the configs:
 
-- `SAM 3`
-- `DiffuEraser`
-- `ROSE`
-- `ProPainter` reuse path from Part 2
+- `SAM 3` -> `part3/external/repository/sam3`
+- `DiffuEraser` -> `part3/external/repository/DiffuEraser`
+- `ROSE` -> `part3/external/repository/ROSE`
+- `ProPainter` -> `part2/external/ProPainter`
+
+Repository URLs:
+
+- `SAM 3`: `https://github.com/facebookresearch/sam3.git`
+- `DiffuEraser`: `https://github.com/lixiaowen-xw/DiffuEraser.git`
+- `ROSE`: `https://github.com/Kunbyte-AI/ROSE.git`
+- `ProPainter`: `https://github.com/sczhou/ProPainter.git`
+
+If you prefer manual cloning, run:
+
+```bash
+git clone https://github.com/facebookresearch/sam3.git \
+  part3/external/repository/sam3
+
+git clone https://github.com/lixiaowen-xw/DiffuEraser.git \
+  part3/external/repository/DiffuEraser
+
+git clone https://github.com/Kunbyte-AI/ROSE.git \
+  part3/external/repository/ROSE
+
+git clone https://github.com/sczhou/ProPainter.git \
+  part2/external/ProPainter
+```
 
 ### 3. Prepare Model Checkpoints
 
-Model checkpoints are configured by absolute paths in the YAML files. In the current environment they are expected under:
+Automatic download script:
 
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3.1`
-- `/hpc2hdd/home/ckwong627/workdir/models/diffuEraser`
-- `/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse`
-- `/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP`
-- `/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer`
+```bash
+bash scripts/download_models.sh
+```
+
+The default model root is the relative path `models/` under `part3/`.
+The script uses **ModelScope by default** for the weights whose ModelScope mirrors are explicitly confirmed in this project setup.
+
+Model checkpoints are configured by relative paths in the YAML files. They are expected under:
+
+- `models/sam3`
+- `models/sam3.1`
+- `models/diffuEraser`
+- `models/sd-vae-ft-mse`
+- `models/stable-diffusion-v1-5`
+- `models/Wan2.1-Fun-1.3B-InP`
+- `models/ROSE_transformer`
+
+Model sources and download targets:
+
+| Component | Source URL | Download-to Directory | Notes |
+| --- | --- | --- | --- |
+| `SAM 3` checkpoint bundle | `https://huggingface.co/facebook/sam3` | `models/sam3` | Upstream-only in this setup. Current config uses `sam3.pt`. |
+| `SAM 3.1` checkpoint bundle | `https://huggingface.co/facebook/sam3.1` | `models/sam3.1` | Upstream-only in this setup. Current config uses `sam3.1_multiplex.pt`. |
+| `DiffuEraser` weights | `https://www.modelscope.cn/models/xingzi/diffuEraser` | `models/diffuEraser` | Downloaded by `scripts/download_models.sh`. |
+| `sd-vae-ft-mse` | `https://huggingface.co/stabilityai/sd-vae-ft-mse` | `models/sd-vae-ft-mse` | Used by `DiffuEraser`. Manual upstream download. |
+| `stable-diffusion-v1-5` base model | `https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5` | `models/stable-diffusion-v1-5` | Used by `DiffuEraser`. Manual upstream download. |
+| `Wan2.1-Fun-1.3B-InP` base model | `https://modelscope.cn/models/PAI/Wan2.1-Fun-1.3B-InP` | `models/Wan2.1-Fun-1.3B-InP` | Downloaded by `scripts/download_models.sh`. Large download. |
+| `ROSE` transformer weights | `https://huggingface.co/Kunbyte/ROSE` | `models/ROSE_transformer` | Upstream-only in this setup. Finetuned transformer for `ROSE`. |
+
+Manual download commands:
+
+```bash
+pip install modelscope
+
+python - <<'PY'
+from modelscope import snapshot_download
+snapshot_download('xingzi/diffuEraser', local_dir='models/diffuEraser')
+snapshot_download('PAI/Wan2.1-Fun-1.3B-InP', local_dir='models/Wan2.1-Fun-1.3B-InP')
+PY
+```
+
+Manual upstream downloads for the remaining weights:
+
+```bash
+hf auth login
+
+hf download facebook/sam3 --local-dir models/sam3
+
+hf download facebook/sam3.1 --local-dir models/sam3.1
+
+hf download stabilityai/sd-vae-ft-mse --local-dir models/sd-vae-ft-mse
+
+hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stable-diffusion-v1-5
+
+hf download Kunbyte/ROSE --local-dir models/ROSE_transformer
+```
+
+Notes:
+
+- Default source is ModelScope where this project has a confirmed ModelScope mirror.
+- `facebook/sam3` and `facebook/sam3.1` require access approval on Hugging Face first.
+- `stable-diffusion-v1-5` and `Wan2.1-Fun-1.3B-InP` are large repositories, so make sure enough disk space is available before downloading.
+- The `ROSE` configs in this project point to a dedicated Python interpreter through `rose.python_bin`. The model files above are still downloaded into the shared model root.
 
 ## Data
 
@@ -133,6 +213,8 @@ Part 3 depends on:
 - `ProPainter` reused from `../part2/external/ProPainter`
 
 The helper script [scripts/setup_external_repos.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/setup_external_repos.sh) is provided for repository setup.
+
+The helper script [scripts/download_models.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/download_models.sh) is provided for model downloads.
 
 This project was developed in an HPC environment and some backends may require dedicated environments or backend-specific Python binaries. For example, the full `ROSE` configs point to a dedicated interpreter through `rose.python_bin`.
 

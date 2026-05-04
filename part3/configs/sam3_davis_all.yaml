@@ -27,7 +27,7 @@ wild:
 sam3:
   repo_dir: "external/repository/sam3"
   version: "sam3"
-  checkpoint: "/hpc2hdd/home/ckwong627/workdir/models/sam3/sam3.pt"
+  checkpoint: "models/sam3/sam3.pt"
   frame_index: 0
   compile: false
   async_loading_frames: false
@@ -47,18 +47,18 @@ diffueraser:
   ref_stride: 10
   neighbor_length: 10
   subvideo_length: 50
-  base_model_path: "/hpc2hdd/home/ckwong627/workdir/models/stable-diffusion-v1-5"
-  vae_path: "/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse"
-  diffueraser_path: "/hpc2hdd/home/ckwong627/workdir/models/diffuEraser"
+  base_model_path: "models/stable-diffusion-v1-5"
+  vae_path: "models/sd-vae-ft-mse"
+  diffueraser_path: "models/diffuEraser"
   propainter_model_dir: "../part2/external/ProPainter/weights"
 
 rose:
   repo_dir: "external/repository/ROSE"
   video_length: 17
   sample_size: [480, 720]
-  model_root: "/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP"
-  transformer_root: "/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer"
-  python_bin: "/hpc2hdd/home/ckwong627/workdir/venvs/rosepart3/bin/python"
+  model_root: "models/Wan2.1-Fun-1.3B-InP"
+  transformer_root: "models/ROSE_transformer"
+  python_bin: "../../../../../../venvs/rosepart3/bin/python"
 
 side_effect:
   enable: true

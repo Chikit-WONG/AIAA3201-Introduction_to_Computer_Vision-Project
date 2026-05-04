@@ -61,23 +61,103 @@ pip install -r requirements_part3.txt
 bash scripts/setup_external_repos.sh
 ```
 
-该脚本会准备 Part 3 所需的外部仓库：
+该脚本会把 Part 3 所需的外部仓库 clone 到当前配置实际使用的位置：
 
-- `SAM 3`
-- `DiffuEraser`
-- `ROSE`
-- 来自 Part 2 的 `ProPainter` 复用路径
+- `SAM 3` -> `part3/external/repository/sam3`
+- `DiffuEraser` -> `part3/external/repository/DiffuEraser`
+- `ROSE` -> `part3/external/repository/ROSE`
+- `ProPainter` -> `part2/external/ProPainter`
+
+外部仓库地址如下：
+
+- `SAM 3`：`https://github.com/facebookresearch/sam3.git`
+- `DiffuEraser`：`https://github.com/lixiaowen-xw/DiffuEraser.git`
+- `ROSE`：`https://github.com/Kunbyte-AI/ROSE.git`
+- `ProPainter`：`https://github.com/sczhou/ProPainter.git`
+
+如果你想手动 clone，也可以直接执行：
+
+```bash
+git clone https://github.com/facebookresearch/sam3.git \
+  part3/external/repository/sam3
+
+git clone https://github.com/lixiaowen-xw/DiffuEraser.git \
+  part3/external/repository/DiffuEraser
+
+git clone https://github.com/Kunbyte-AI/ROSE.git \
+  part3/external/repository/ROSE
+
+git clone https://github.com/sczhou/ProPainter.git \
+  part2/external/ProPainter
+```
 
 ### 3. 准备模型权重
 
-模型路径在 YAML 中使用绝对路径配置。当前环境下默认放在：
+自动下载脚本：
 
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3`
-- `/hpc2hdd/home/ckwong627/workdir/models/sam3.1`
-- `/hpc2hdd/home/ckwong627/workdir/models/diffuEraser`
-- `/hpc2hdd/home/ckwong627/workdir/models/sd-vae-ft-mse`
-- `/hpc2hdd/home/ckwong627/workdir/models/Wan2.1-Fun-1.3B-InP`
-- `/hpc2hdd/home/ckwong627/workdir/models/ROSE_transformer`
+```bash
+bash scripts/download_models.sh
+```
+
+现在默认模型根目录是 `part3/` 下的相对路径 `models/`。
+该脚本会**优先使用 ModelScope** 下载本项目里已经明确确认过有 ModelScope 镜像的模型。
+
+模型路径在 YAML 中使用相对路径配置。当前默认放在：
+
+- `models/sam3`
+- `models/sam3.1`
+- `models/diffuEraser`
+- `models/sd-vae-ft-mse`
+- `models/stable-diffusion-v1-5`
+- `models/Wan2.1-Fun-1.3B-InP`
+- `models/ROSE_transformer`
+
+模型来源与目标目录如下：
+
+| 组件 | 下载地址 | 下载到哪里 | 说明 |
+| --- | --- | --- | --- |
+| `SAM 3` checkpoint bundle | `https://huggingface.co/facebook/sam3` | `models/sam3` | 当前这套项目里属于 upstream-only。配置使用 `sam3.pt`。 |
+| `SAM 3.1` checkpoint bundle | `https://huggingface.co/facebook/sam3.1` | `models/sam3.1` | 当前这套项目里属于 upstream-only。配置使用 `sam3.1_multiplex.pt`。 |
+| `DiffuEraser` 权重 | `https://www.modelscope.cn/models/xingzi/diffuEraser` | `models/diffuEraser` | 可由 `scripts/download_models.sh` 自动下载。 |
+| `sd-vae-ft-mse` | `https://huggingface.co/stabilityai/sd-vae-ft-mse` | `models/sd-vae-ft-mse` | `DiffuEraser` 所需。需要手动走 upstream 下载。 |
+| `stable-diffusion-v1-5` 基础模型 | `https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5` | `models/stable-diffusion-v1-5` | `DiffuEraser` 所需，体积较大。需要手动走 upstream 下载。 |
+| `Wan2.1-Fun-1.3B-InP` 基础模型 | `https://modelscope.cn/models/PAI/Wan2.1-Fun-1.3B-InP` | `models/Wan2.1-Fun-1.3B-InP` | 可由 `scripts/download_models.sh` 自动下载。体积较大。 |
+| `ROSE` transformer 权重 | `https://huggingface.co/Kunbyte/ROSE` | `models/ROSE_transformer` | 当前这套项目里属于 upstream-only。 |
+
+手动下载命令如下：
+
+```bash
+pip install modelscope
+
+python - <<'PY'
+from modelscope import snapshot_download
+snapshot_download('xingzi/diffuEraser', local_dir='models/diffuEraser')
+snapshot_download('PAI/Wan2.1-Fun-1.3B-InP', local_dir='models/Wan2.1-Fun-1.3B-InP')
+PY
+```
+
+其余模型的 upstream 手动下载命令如下：
+
+```bash
+hf auth login
+
+hf download facebook/sam3 --local-dir models/sam3
+
+hf download facebook/sam3.1 --local-dir models/sam3.1
+
+hf download stabilityai/sd-vae-ft-mse --local-dir models/sd-vae-ft-mse
+
+hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stable-diffusion-v1-5
+
+hf download Kunbyte/ROSE --local-dir models/ROSE_transformer
+```
+
+说明：
+
+- 默认优先下载源是 ModelScope，前提是本项目里已经明确确认到对应的 ModelScope 镜像。
+- `facebook/sam3` 和 `facebook/sam3.1` 需要先在 Hugging Face 上申请访问权限。
+- `stable-diffusion-v1-5` 和 `Wan2.1-Fun-1.3B-InP` 体积较大，下载前请先确认磁盘空间足够。
+- 本项目中的 `ROSE` 配置虽然通过 `rose.python_bin` 指向单独解释器，但模型文件仍统一下载到共享模型目录。
 
 ## 数据
 
@@ -135,6 +215,10 @@ Part 3 依赖以下外部仓库：
 仓库准备脚本为：
 
 - [scripts/setup_external_repos.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/setup_external_repos.sh)
+
+模型下载脚本为：
+
+- [scripts/download_models.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/download_models.sh)
 
 本项目是在 HPC 环境中开发的，部分后端可能需要独立环境或后端专用解释器。例如完整 `ROSE` 配置会通过 `rose.python_bin` 指向一个单独的 Python。
 
