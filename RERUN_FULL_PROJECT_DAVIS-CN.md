@@ -113,15 +113,22 @@ conda activate cv3
 模型下载默认规则：
 
 - 默认优先使用 `ModelScope`
-- 如果某个权重当前没有被这套 `ModelScope` helper 覆盖，再使用 `part3/README-CN.md` 里写的上游 `Hugging Face` 下载方式
+- 在当前这套配置里，`SAM 3` 和 `SAM 3.1` 可以直接从 `ModelScope` 下载，因此如果走默认路径，就不需要 `Hugging Face` 访问审批
+- 如果某个权重当前仍没有被这套 `ModelScope` helper 覆盖，再使用 `part3/README-CN.md` 里写的可选 `Hugging Face` 下载方式
 
 推荐的模型准备命令：
 
 ```bash
-bash scripts/download_models.sh
+bash setup.sh
 ```
 
-这个脚本会先下载当前已经确认好的 `ModelScope` 模型，并在 `part3/models/` 下把其余目录也准备好。
+这是推荐路径。它会先 clone 所需仓库，再下载当前已经确认好的 `ModelScope` 模型，并在 `part3/models/` 下把其余目录也准备好。
+
+如果仓库已经 clone 好，只想单独下载模型，也可以执行：
+
+```bash
+bash scripts/download_models.sh
+```
 
 先把 DAVIS 帧目录转换成 mp4：
 
@@ -146,7 +153,7 @@ python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml -
 - 这个脚本会使用 DAVIS 第一帧的 GT mask，自动构造 bbox 和 point 来初始化 SAM 3。
 - 这次 DAVIS-only 重跑里，Part 3 的 `JM/JR` 只从 mask 输出上评估。
 - 因此 Part 3 里四种方法在 DAVIS 上会复用同一套 object masks，inpainting backend 不参与 DAVIS `JM/JR` 计算。
-- 模型下载默认优先使用 `ModelScope`；像 gated `SAM 3` 这类当前仍属于 upstream-only 的权重，再用 `Hugging Face` 作为可选补充下载源。
+- 模型下载默认优先使用 `ModelScope`。在当前这套配置里，`SAM 3` 和 `SAM 3.1` 已经可以直接从那里下载；`Hugging Face` 只作为其余 upstream-only 项目的可选补充下载源。
 
 ## 生成跨 Part 最终总表
 

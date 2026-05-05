@@ -113,15 +113,22 @@ Prepare external repositories and checkpoints first:
 Default model download source:
 
 - Prefer `ModelScope` first.
-- If a required checkpoint is not covered by the current `ModelScope` helper, use the upstream `Hugging Face` download path described in `part3/README.md`.
+- `SAM 3` and `SAM 3.1` can be downloaded from `ModelScope` in the current setup, so Hugging Face access approval is not required if you stay on the default path.
+- If a required checkpoint is still not covered by the current `ModelScope` helper, use the optional upstream `Hugging Face` path described in `part3/README.md`.
 
 Recommended model preparation commands:
 
 ```bash
-bash scripts/download_models.sh
+bash setup.sh
 ```
 
-This downloads the currently confirmed `ModelScope` items and prepares the remaining model directories under `part3/models/`.
+This is the recommended path. It clones the required repositories, downloads the currently confirmed `ModelScope` items, and prepares the remaining model directories under `part3/models/`.
+
+If the repositories are already cloned and you want only the model step:
+
+```bash
+bash scripts/download_models.sh
+```
 
 Generate DAVIS mp4 files once:
 
@@ -146,7 +153,7 @@ Notes:
 - This script uses the first-frame DAVIS annotation to initialize SAM 3 with a GT-derived bbox and point prompt.
 - For the DAVIS-only rerun, Part 3 `JM/JR` is evaluated from the mask output only.
 - Therefore, the four Part 3 method rows reuse the same object masks on DAVIS. The inpainting backend is not part of DAVIS `JM/JR`.
-- For model downloads, the default preference is `ModelScope`; `Hugging Face` remains an optional fallback for upstream-only items such as the gated `SAM 3` checkpoints.
+- For model downloads, the default preference is `ModelScope`. In the current setup, `SAM 3` and `SAM 3.1` are available there, while `Hugging Face` remains an optional fallback for the remaining upstream-only items.
 
 ## Build the Final Cross-Part Table
 

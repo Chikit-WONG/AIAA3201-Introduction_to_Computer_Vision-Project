@@ -55,7 +55,41 @@ pip install -r requirements_part3.txt
 
 这一部分现在与 Part 1 和 Part 2 的环境配置风格保持一致。如果你的本地 CUDA / PyTorch 环境不同，可以按实际情况调整 PyTorch 安装命令。
 
-### 2. 配置外部依赖仓库
+### 2. 一键配置
+
+现在最推荐的配置方式是直接运行：
+
+```bash
+conda env create -f environment.yml
+conda activate cv2
+bash setup.sh
+```
+
+这个脚本会：
+
+- clone 所有需要的外部仓库
+- 安装辅助下载所需的 Python 包
+- 把模型权重下载到 `models/`
+- 默认优先使用 `ModelScope`
+- 默认会从 `ModelScope` 下载 `SAM 3` 和 `SAM 3.1`，因此按默认路径走时不需要 `Hugging Face` 访问审批
+- 对当前项目里还没有确认 `ModelScope` 镜像的权重，自动回退到 `Hugging Face`
+- 默认假设你已经激活了 Part 3 的 conda 环境
+
+如果你想强制优先走 `Hugging Face`，可以运行：
+
+```bash
+conda activate cv2
+bash setup.sh --source hf
+```
+
+如果你想保留自动回退策略，也可以显式写成：
+
+```bash
+conda activate cv2
+bash setup.sh --source auto
+```
+
+### 3. 分开配置外部依赖仓库
 
 ```bash
 bash scripts/setup_external_repos.sh
@@ -91,7 +125,7 @@ git clone https://github.com/sczhou/ProPainter.git \
   part2/external/ProPainter
 ```
 
-### 3. 准备模型权重
+### 4. 分开准备模型权重
 
 自动下载脚本：
 
@@ -116,8 +150,8 @@ bash scripts/download_models.sh
 
 | 组件 | 下载地址 | 下载到哪里 | 说明 |
 | --- | --- | --- | --- |
-| `SAM 3` checkpoint bundle | `https://huggingface.co/facebook/sam3` | `models/sam3` | 当前这套项目里属于 upstream-only。配置使用 `sam3.pt`。 |
-| `SAM 3.1` checkpoint bundle | `https://huggingface.co/facebook/sam3.1` | `models/sam3.1` | 当前这套项目里属于 upstream-only。配置使用 `sam3.1_multiplex.pt`。 |
+| `SAM 3` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3` | `models/sam3` | 本项目默认下载源。`Hugging Face` 仍可选：`https://huggingface.co/facebook/sam3`。 |
+| `SAM 3.1` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3.1` | `models/sam3.1` | 本项目默认下载源。`Hugging Face` 仍可选：`https://huggingface.co/facebook/sam3.1`。 |
 | `DiffuEraser` 权重 | `https://www.modelscope.cn/models/xingzi/diffuEraser` | `models/diffuEraser` | 可由 `scripts/download_models.sh` 自动下载。 |
 | `sd-vae-ft-mse` | `https://huggingface.co/stabilityai/sd-vae-ft-mse` | `models/sd-vae-ft-mse` | `DiffuEraser` 所需。需要手动走 upstream 下载。 |
 | `stable-diffusion-v1-5` 基础模型 | `https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5` | `models/stable-diffusion-v1-5` | `DiffuEraser` 所需，体积较大。需要手动走 upstream 下载。 |
@@ -131,6 +165,8 @@ pip install modelscope
 
 python - <<'PY'
 from modelscope import snapshot_download
+snapshot_download('facebook/sam3', local_dir='models/sam3')
+snapshot_download('facebook/sam3.1', local_dir='models/sam3.1')
 snapshot_download('xingzi/diffuEraser', local_dir='models/diffuEraser')
 snapshot_download('PAI/Wan2.1-Fun-1.3B-InP', local_dir='models/Wan2.1-Fun-1.3B-InP')
 PY
@@ -141,10 +177,6 @@ PY
 ```bash
 hf auth login
 
-hf download facebook/sam3 --local-dir models/sam3
-
-hf download facebook/sam3.1 --local-dir models/sam3.1
-
 hf download stabilityai/sd-vae-ft-mse --local-dir models/sd-vae-ft-mse
 
 hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stable-diffusion-v1-5
@@ -152,10 +184,18 @@ hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stabl
 hf download Kunbyte/ROSE --local-dir models/ROSE_transformer
 ```
 
+如果你仍然想手动从 `Hugging Face` 下载 `SAM 3` / `SAM 3.1`，可以额外执行：
+
+```bash
+hf auth login
+hf download facebook/sam3 --local-dir models/sam3
+hf download facebook/sam3.1 --local-dir models/sam3.1
+```
+
 说明：
 
 - 默认优先下载源是 ModelScope，前提是本项目里已经明确确认到对应的 ModelScope 镜像。
-- `facebook/sam3` 和 `facebook/sam3.1` 需要先在 Hugging Face 上申请访问权限。
+- 在当前这套配置里，`SAM 3` 和 `SAM 3.1` 可以直接走 ModelScope，因此默认路径下不需要先申请 Hugging Face 权限。
 - `stable-diffusion-v1-5` 和 `Wan2.1-Fun-1.3B-InP` 体积较大，下载前请先确认磁盘空间足够。
 - 本项目中的 `ROSE` 配置虽然通过 `rose.python_bin` 指向单独解释器，但模型文件仍统一下载到共享模型目录。
 
@@ -212,7 +252,11 @@ Part 3 依赖以下外部仓库：
 - `ROSE`：`external/repository/ROSE`
 - `ProPainter`：复用 `../part2/external/ProPainter`
 
-仓库准备脚本为：
+推荐的一键入口脚本为：
+
+- [setup.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/setup.sh)
+
+只负责仓库 clone 的脚本为：
 
 - [scripts/setup_external_repos.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/setup_external_repos.sh)
 

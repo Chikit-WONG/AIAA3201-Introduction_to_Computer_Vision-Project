@@ -29,20 +29,18 @@ echo "Using MODEL_ROOT=$MODEL_ROOT"
 echo "Default download source: ModelScope"
 echo "This script downloads only the weights with verified ModelScope mirrors in this project."
 
+download_modelscope_repo "facebook/sam3" "$MODEL_ROOT/sam3"
+download_modelscope_repo "facebook/sam3.1" "$MODEL_ROOT/sam3.1"
 download_modelscope_repo "xingzi/diffuEraser" "$MODEL_ROOT/diffuEraser"
 download_modelscope_repo "PAI/Wan2.1-Fun-1.3B-InP" "$MODEL_ROOT/Wan2.1-Fun-1.3B-InP"
 
 mkdir -p \
-  "$MODEL_ROOT/sam3" \
-  "$MODEL_ROOT/sam3.1" \
   "$MODEL_ROOT/sd-vae-ft-mse" \
   "$MODEL_ROOT/stable-diffusion-v1-5" \
   "$MODEL_ROOT/ROSE_transformer"
 
 echo
 echo "[MANUAL][UPSTREAM] Please place the remaining weights into:"
-echo "  $MODEL_ROOT/sam3                  <- SAM 3 gated checkpoint bundle"
-echo "  $MODEL_ROOT/sam3.1                <- SAM 3.1 gated checkpoint bundle"
 echo "  $MODEL_ROOT/sd-vae-ft-mse         <- sd-vae-ft-mse"
 echo "  $MODEL_ROOT/stable-diffusion-v1-5 <- stable-diffusion-v1-5"
 echo "  $MODEL_ROOT/ROSE_transformer      <- ROSE transformer weights"

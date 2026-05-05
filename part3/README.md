@@ -55,7 +55,41 @@ pip install -r requirements_part3.txt
 
 This matches the environment style used in Part 1 and Part 2. If your local CUDA / PyTorch stack is different, adjust the PyTorch install command accordingly.
 
-### 2. Setup External Dependencies
+### 2. One-Command Setup
+
+The easiest setup path is now:
+
+```bash
+conda env create -f environment.yml
+conda activate cv2
+bash setup.sh
+```
+
+This script:
+
+- clones all required external repositories
+- installs the helper download packages
+- downloads model weights into `models/`
+- prefers `ModelScope` by default
+- downloads `SAM 3` and `SAM 3.1` from `ModelScope` by default, so no Hugging Face access approval is required on the default path
+- automatically falls back to `Hugging Face` for weights without a confirmed `ModelScope` mirror in this project
+- assumes the Part 3 conda environment is already activated
+
+If you want to force Hugging Face as the preferred source, run:
+
+```bash
+conda activate cv2
+bash setup.sh --source hf
+```
+
+If you want to keep automatic fallback behavior explicit, you can also run:
+
+```bash
+conda activate cv2
+bash setup.sh --source auto
+```
+
+### 3. Setup External Dependencies Separately
 
 ```bash
 bash scripts/setup_external_repos.sh
@@ -91,7 +125,7 @@ git clone https://github.com/sczhou/ProPainter.git \
   part2/external/ProPainter
 ```
 
-### 3. Prepare Model Checkpoints
+### 4. Prepare Model Checkpoints Separately
 
 Automatic download script:
 
@@ -116,8 +150,8 @@ Model sources and download targets:
 
 | Component | Source URL | Download-to Directory | Notes |
 | --- | --- | --- | --- |
-| `SAM 3` checkpoint bundle | `https://huggingface.co/facebook/sam3` | `models/sam3` | Upstream-only in this setup. Current config uses `sam3.pt`. |
-| `SAM 3.1` checkpoint bundle | `https://huggingface.co/facebook/sam3.1` | `models/sam3.1` | Upstream-only in this setup. Current config uses `sam3.1_multiplex.pt`. |
+| `SAM 3` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3` | `models/sam3` | Default source in this project. `Hugging Face` remains optional: `https://huggingface.co/facebook/sam3`. |
+| `SAM 3.1` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3.1` | `models/sam3.1` | Default source in this project. `Hugging Face` remains optional: `https://huggingface.co/facebook/sam3.1`. |
 | `DiffuEraser` weights | `https://www.modelscope.cn/models/xingzi/diffuEraser` | `models/diffuEraser` | Downloaded by `scripts/download_models.sh`. |
 | `sd-vae-ft-mse` | `https://huggingface.co/stabilityai/sd-vae-ft-mse` | `models/sd-vae-ft-mse` | Used by `DiffuEraser`. Manual upstream download. |
 | `stable-diffusion-v1-5` base model | `https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5` | `models/stable-diffusion-v1-5` | Used by `DiffuEraser`. Manual upstream download. |
@@ -131,6 +165,8 @@ pip install modelscope
 
 python - <<'PY'
 from modelscope import snapshot_download
+snapshot_download('facebook/sam3', local_dir='models/sam3')
+snapshot_download('facebook/sam3.1', local_dir='models/sam3.1')
 snapshot_download('xingzi/diffuEraser', local_dir='models/diffuEraser')
 snapshot_download('PAI/Wan2.1-Fun-1.3B-InP', local_dir='models/Wan2.1-Fun-1.3B-InP')
 PY
@@ -141,10 +177,6 @@ Manual upstream downloads for the remaining weights:
 ```bash
 hf auth login
 
-hf download facebook/sam3 --local-dir models/sam3
-
-hf download facebook/sam3.1 --local-dir models/sam3.1
-
 hf download stabilityai/sd-vae-ft-mse --local-dir models/sd-vae-ft-mse
 
 hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stable-diffusion-v1-5
@@ -152,10 +184,18 @@ hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stabl
 hf download Kunbyte/ROSE --local-dir models/ROSE_transformer
 ```
 
+Optional Hugging Face downloads for `SAM 3` and `SAM 3.1`:
+
+```bash
+hf auth login
+hf download facebook/sam3 --local-dir models/sam3
+hf download facebook/sam3.1 --local-dir models/sam3.1
+```
+
 Notes:
 
 - Default source is ModelScope where this project has a confirmed ModelScope mirror.
-- `facebook/sam3` and `facebook/sam3.1` require access approval on Hugging Face first.
+- `SAM 3` and `SAM 3.1` can be downloaded from ModelScope in this setup, so Hugging Face access approval is not required on the default path.
 - `stable-diffusion-v1-5` and `Wan2.1-Fun-1.3B-InP` are large repositories, so make sure enough disk space is available before downloading.
 - The `ROSE` configs in this project point to a dedicated Python interpreter through `rose.python_bin`. The model files above are still downloaded into the shared model root.
 
@@ -212,7 +252,9 @@ Part 3 depends on:
 - `ROSE` under `external/repository/ROSE`
 - `ProPainter` reused from `../part2/external/ProPainter`
 
-The helper script [scripts/setup_external_repos.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/setup_external_repos.sh) is provided for repository setup.
+The one-command setup script [setup.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/setup.sh) is the recommended entry point.
+
+The helper script [scripts/setup_external_repos.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/setup_external_repos.sh) is provided for repository setup only.
 
 The helper script [scripts/download_models.sh](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/scripts/download_models.sh) is provided for model downloads.
 
