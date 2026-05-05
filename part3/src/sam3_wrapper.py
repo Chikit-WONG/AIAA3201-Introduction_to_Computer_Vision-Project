@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import getpass
+import importlib.util
 import os
 import shutil
 import sys
@@ -28,7 +29,8 @@ class SAM3MaskGenerator:
                  version: str = "sam3", frame_index: int = 0, compile: bool = False,
                  async_loading_frames: bool = False, use_fa3: bool | None = None,
                  use_rope_real: bool | None = None):
-        self.sam3_dir = os.path.abspath(sam3_dir)
+        self.requested_sam3_dir = os.path.abspath(sam3_dir)
+        self.sam3_dir = self._resolve_sam3_dir(self.requested_sam3_dir)
         self.checkpoint = checkpoint or None
         self.device = device
         self.version = version
@@ -37,11 +39,64 @@ class SAM3MaskGenerator:
         self.async_loading_frames = async_loading_frames
         self.use_fa3 = use_fa3
         self.use_rope_real = use_rope_real
-        if not os.path.isdir(self.sam3_dir):
-            raise FileNotFoundError(f"SAM 3 repository not found: {self.sam3_dir}")
+
+    def _resolve_checkpoint_path(self) -> str | None:
+        if not self.checkpoint:
+            return None
+
+        checkpoint_path = os.path.abspath(self.checkpoint)
+        if os.path.isfile(checkpoint_path):
+            return checkpoint_path
+
+        candidate_dir = checkpoint_path if os.path.isdir(checkpoint_path) else os.path.dirname(checkpoint_path)
+        if not candidate_dir or not os.path.isdir(candidate_dir):
+            return None
+
+        preferred_filenames = []
+        if self.version == "sam3.1":
+            preferred_filenames.extend(["sam3.1_multiplex.pt", "sam3.1.pt"])
+        else:
+            preferred_filenames.extend(["sam3.pt", "sam3_multiplex.pt"])
+
+        for filename in preferred_filenames:
+            candidate = os.path.join(candidate_dir, filename)
+            if os.path.isfile(candidate):
+                return candidate
+
+        weight_candidates = sorted(
+            path for pattern in ("*.pt", "*.pth") for path in Path(candidate_dir).glob(pattern)
+        )
+        if len(weight_candidates) == 1:
+            return str(weight_candidates[0])
+        if weight_candidates:
+            return str(weight_candidates[0])
+        return None
+
+    @staticmethod
+    def _resolve_sam3_dir(requested_dir: str) -> str | None:
+        env_repo_dir = os.environ.get("SAM3_REPO_DIR")
+        candidate_dirs = []
+        if env_repo_dir:
+            candidate_dirs.append(os.path.abspath(env_repo_dir))
+        candidate_dirs.append(requested_dir)
+
+        for candidate in candidate_dirs:
+            if os.path.isdir(candidate):
+                return candidate
+
+        if importlib.util.find_spec("sam3") is not None:
+            return None
+
+        searched_dirs = ", ".join(candidate_dirs)
+        raise FileNotFoundError(
+            "SAM 3 repository not found. Searched: "
+            f"{searched_dirs}. "
+            "Fix by running `bash scripts/setup_external_repos.sh` from the `part3` directory, "
+            "or set `SAM3_REPO_DIR` to an existing `sam3` checkout."
+        )
 
     def _build_model(self):
-        if self.sam3_dir not in sys.path:
+        if self.sam3_dir and self.sam3_dir not in sys.path:
             sys.path.insert(0, self.sam3_dir)
         username = getpass.getuser()
         os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", f"/tmp/torchinductor_cache_{username}")
@@ -59,7 +114,14 @@ class SAM3MaskGenerator:
         if self.use_rope_real is not None:
             build_kwargs["use_rope_real"] = self.use_rope_real
         if self.checkpoint:
-            build_kwargs["checkpoint_path"] = self.checkpoint
+            resolved_checkpoint = self._resolve_checkpoint_path()
+            if resolved_checkpoint:
+                build_kwargs["checkpoint_path"] = resolved_checkpoint
+            else:
+                print(
+                    f"SAM 3 checkpoint bundle not found or empty at {self.checkpoint}; "
+                    "falling back to automatic download."
+                )
 
         try:
             return build_sam3_predictor(**build_kwargs)

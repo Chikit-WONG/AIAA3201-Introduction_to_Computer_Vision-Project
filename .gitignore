@@ -15,6 +15,7 @@ slurm-*.out
 presentation/
 # plan/
 result_videos/
+models/
 *.zip
 
 # Project-scale rerun outputs

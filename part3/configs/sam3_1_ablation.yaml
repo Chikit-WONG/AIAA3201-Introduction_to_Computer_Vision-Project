@@ -29,7 +29,7 @@ wild:
 sam3:
   repo_dir: "external/repository/sam3"
   version: "sam3.1"
-  checkpoint: "models/sam3.1/sam3.1_multiplex.pt"
+  checkpoint: "models/sam3.1"
   frame_index: 0
   compile: false
   async_loading_frames: false
