@@ -236,10 +236,10 @@ clean ground truth 只用于评估，不参与推理。
   - pipeline 实现、wrapper、评估和工具代码
 - [slurm_scripts/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts)
   - smoke test、方法运行和评估的 SLURM 脚本
-- [outputs_ablation/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_ablation)
-  - `SAM 3` vs `SAM 3.1` 的 smoke 消融结果
-- [outputs_full/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full)
-  - 最终完整实验输出和汇总表
+- [outputs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs)
+  - 唯一正式输出根目录，下面按 `full/`、`ablation/` 和未来的 `davis_full/` 分类
+- `artifacts_debug/`
+  - 非最终 smoke 检查、历史本地运行结果和归档的 SLURM 日志
 - [plan/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/plan)
   - 规划文档和执行规格书
 
@@ -341,14 +341,16 @@ python evaluate_part3.py \
 
 主要输出根目录：
 
-- `outputs/`
-  - 本地 smoke 和中间调试运行
-- `outputs_ablation/`
+- `outputs/full/`
+  - 最终完整实验结果和最终汇总表
+- `outputs/ablation/`
   - `SAM 3` vs `SAM 3.1` 的 smoke 消融
-- `outputs_full/`
-  - 最终完整实验结果
+- `outputs/davis_full/`
+  - 预留给全 DAVIS 重跑结果
+- `artifacts_debug/`
+  - 非最终 smoke 检查、归档的本地实验和 SLURM 日志
 
-在 `outputs_full/<variant>/` 下面，最重要的是：
+在 `outputs/full/<variant>/` 下面，最重要的是：
 
 - `videos/`
 - `masks/`
@@ -356,8 +358,8 @@ python evaluate_part3.py \
 
 最终汇总表位于：
 
-- [outputs_full/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_full_summary.md)
-- [outputs_full/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_results_table.md)
+- [outputs/full/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs/full/summary/part3_full_summary.md)
+- [outputs/full/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs/full/summary/part3_results_table.md)
 
 同目录下也提供了中文版。
 

@@ -27,7 +27,7 @@ This guide is for rerunning the whole project with direct `python` commands inst
 
 - `part1/results_davis_full/`
 - `part2/results_davis_full/`
-- `part3/outputs_davis_full/`
+- `part3/outputs/davis_full/`
 - `results_davis_summary/project_davis_summary.md`
 - `results_davis_summary/project_davis_summary.csv`
 - `results_davis_summary/project_davis_summary.json`

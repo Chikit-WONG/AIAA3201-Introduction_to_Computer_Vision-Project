@@ -236,10 +236,10 @@ Key files and folders:
   - pipeline implementation, wrappers, metrics, and utility code
 - [slurm_scripts/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts)
   - SLURM scripts for smoke tests, method runs, and evaluation
-- [outputs_ablation/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_ablation)
-  - `SAM 3` vs `SAM 3.1` smoke ablation results
-- [outputs_full/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full)
-  - final full-run outputs and summary tables
+- [outputs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs)
+  - the only formal output root, with `full/`, `ablation/`, and future `davis_full/`
+- `artifacts_debug/`
+  - non-final smoke checks, historical local runs, and archived SLURM logs
 - [plan/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/plan)
   - planning documents and execution specifications
 
@@ -335,14 +335,16 @@ python evaluate_part3.py \
 
 Important output roots:
 
-- `outputs/`
-  - local smoke and intermediate runs
-- `outputs_ablation/`
+- `outputs/full/`
+  - final full experiments and final summary tables
+- `outputs/ablation/`
   - `SAM 3` vs `SAM 3.1` smoke ablation
-- `outputs_full/`
-  - final full experiments
+- `outputs/davis_full/`
+  - reserved for the full-DAVIS rerun outputs
+- `artifacts_debug/`
+  - non-final smoke checks, archived local experiments, and SLURM job logs
 
-Inside `outputs_full/<variant>/`, the most important folders are:
+Inside `outputs/full/<variant>/`, the most important folders are:
 
 - `videos/`
 - `masks/`
@@ -350,8 +352,8 @@ Inside `outputs_full/<variant>/`, the most important folders are:
 
 Final summary tables are stored in:
 
-- [outputs_full/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_full_summary.md)
-- [outputs_full/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_results_table.md)
+- [outputs/full/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs/full/summary/part3_full_summary.md)
+- [outputs/full/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs/full/summary/part3_results_table.md)
 
 Chinese versions are also provided in the same folder.
 

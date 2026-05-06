@@ -27,7 +27,7 @@ English version: [RERUN_FULL_PROJECT_DAVIS.md](/hpc2hdd/home/ckwong627/workdir/C
 
 - `part1/results_davis_full/`
 - `part2/results_davis_full/`
-- `part3/outputs_davis_full/`
+- `part3/outputs/davis_full/`
 - `results_davis_summary/project_davis_summary.md`
 - `results_davis_summary/project_davis_summary.csv`
 - `results_davis_summary/project_davis_summary.json`

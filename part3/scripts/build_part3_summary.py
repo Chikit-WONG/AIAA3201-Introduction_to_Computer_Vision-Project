@@ -49,8 +49,8 @@ def main() -> None:
 
     root = os.path.abspath(args.part3_root)
     variants = {
-        "sam3": os.path.join(root, "outputs_full", "sam3", "metrics"),
-        "sam3.1": os.path.join(root, "outputs_full", "sam3_1", "metrics"),
+        "sam3": os.path.join(root, "outputs", "full", "sam3", "metrics"),
+        "sam3.1": os.path.join(root, "outputs", "full", "sam3_1", "metrics"),
     }
     methods = [
         "sam3_diffueraser_object",
@@ -88,7 +88,7 @@ def main() -> None:
         "avg_wild_PSNR",
         "avg_wild_SSIM",
     ]
-    output_dir = os.path.join(root, "outputs_full", "summary")
+    output_dir = os.path.join(root, "outputs", "full", "summary")
     write_csv(os.path.join(output_dir, "part3_full_summary.csv"), fieldnames, rows)
     write_md(os.path.join(output_dir, "part3_full_summary.md"), fieldnames, rows)
     with open(os.path.join(output_dir, "part3_full_summary.json"), "w", encoding="utf-8") as f:

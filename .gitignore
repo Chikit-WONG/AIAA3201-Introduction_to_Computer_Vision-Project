@@ -21,14 +21,19 @@ models/
 # Project-scale rerun outputs
 part1/results_davis_full/
 part2/results_davis_full/
-part3/outputs*/
+part3/outputs/full/
+part3/outputs/ablation/
+part3/outputs/davis_full/
+!part3/outputs/README.md
+!part3/outputs/README-CN.md
+part3/artifacts_debug/*
+!part3/artifacts_debug/README.md
 results_davis_summary/
 
 # Generated DAVIS videos and temp caches
 part3/inputs/davis_videos/
 part1/temp/
 part2/temp/
-part3/temp/
 
 # External repos and large model-adjacent assets inside the project tree
 part2/external/
