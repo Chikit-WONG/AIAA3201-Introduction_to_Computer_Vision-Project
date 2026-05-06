@@ -1,0 +1,10 @@
+part,method,variant,num_sequences,avg_JM,avg_JR,source,notes
+part1,spatial_only,,91,0.24346583439746233,0.23551259318202047,part1/results_davis_full/spatial_only_metrics.json,
+part1,temporal_aligned,,91,0.24346583439746233,0.23551259318202047,part1/results_davis_full/temporal_aligned_metrics.json,
+part1,temporal_no_align,,91,0.24346583439746233,0.23551259318202047,part1/results_davis_full/temporal_no_align_metrics.json,
+part2,sam2_propainter,,91,0.9167439809275267,0.9845906254239587,part2/results_davis_full/sam2_metrics.json,
+part2,vggt4d_propainter,,2,0.0,0.0,part2/results_davis_full/vggt4d_metrics.json,
+part3,sam3_diffueraser_object,sam3,90,0.7599141826684389,0.7943261071475367,part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json,DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR.
+part3,sam3_diffueraser_side_effect,sam3,90,0.7599141826684389,0.7943261071475367,part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json,DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR.
+part3,sam3_rose_object,sam3,90,0.7599141826684389,0.7943261071475367,part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_object.json,DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR.
+part3,sam3_rose_side_effect,sam3,90,0.7599141826684389,0.7943261071475367,part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json,DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR.

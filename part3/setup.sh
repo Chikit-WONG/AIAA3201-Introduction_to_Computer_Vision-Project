@@ -64,6 +64,16 @@ PY
   fi
 }
 
+install_requirements_file() {
+  local requirements_file="$1"
+  if [[ ! -f "$requirements_file" ]]; then
+    echo "[!] Requirements file not found, skipping: $requirements_file"
+    return
+  fi
+  echo "[+] Installing Python requirements from: $requirements_file"
+  env LD_LIBRARY_PATH="" pip install -r "$requirements_file"
+}
+
 hf_download() {
   local repo_id="$1"
   local target_dir="$2"
@@ -148,6 +158,8 @@ echo "============================================"
 
 ensure_python_pkg "modelscope" "modelscope"
 ensure_python_pkg "huggingface_hub" "huggingface_hub"
+install_requirements_file "$SCRIPT_DIR/requirements_part3.txt"
+install_requirements_file "$REPO_DIR/DiffuEraser/requirements.txt"
 
 echo
 echo "============================================"
@@ -158,6 +170,7 @@ echo "Preferred source: $SOURCE"
 download_with_preference "SAM 3" "$MODEL_ROOT/sam3" "facebook/sam3" "facebook/sam3"
 download_with_preference "SAM 3.1" "$MODEL_ROOT/sam3.1" "facebook/sam3.1" "facebook/sam3.1"
 download_with_preference "DiffuEraser" "$MODEL_ROOT/diffuEraser" "xingzi/diffuEraser" "lixiaowen/diffuEraser"
+download_with_preference "PCM Weights" "$MODEL_ROOT/PCM_Weights" "" "wangfuyun/PCM_Weights"
 download_with_preference "sd-vae-ft-mse" "$MODEL_ROOT/sd-vae-ft-mse" "" "stabilityai/sd-vae-ft-mse"
 download_with_preference "stable-diffusion-v1-5" "$MODEL_ROOT/stable-diffusion-v1-5" "AI-ModelScope/stable-diffusion-v1-5" "stable-diffusion-v1-5/stable-diffusion-v1-5"
 download_with_preference "Wan2.1-Fun-1.3B-InP" "$MODEL_ROOT/Wan2.1-Fun-1.3B-InP" "PAI/Wan2.1-Fun-1.3B-InP" "alibaba-pai/Wan2.1-Fun-1.3B-InP"

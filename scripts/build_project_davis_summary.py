@@ -10,6 +10,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "results_davis_summary"
+EXCLUDED_PART3_VARIANTS = {"sam3.1"}
 
 
 def average(values: list[float]) -> float | None:
@@ -73,6 +74,10 @@ def fmt(value: float | None, highlight: bool = False) -> str:
     return f"**{text}**" if highlight else text
 
 
+def row_label(row: dict) -> str:
+    return f"{row['part']} / {row['method']} {row['variant']}".strip()
+
+
 def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
@@ -114,12 +119,8 @@ def write_markdown(path: Path, rows: list[dict]) -> None:
             best_jm = [row for row in rows if row["avg_JM"] == max_jm]
             best_jr = [row for row in rows if row["avg_JR"] == max_jr]
             f.write("\n## Notes\n\n")
-            f.write(
-                f"- Best `JM`: {', '.join(f'{row['part']} / {row['method']} {row['variant']}'.strip() for row in best_jm)}\n"
-            )
-            f.write(
-                f"- Best `JR`: {', '.join(f'{row['part']} / {row['method']} {row['variant']}'.strip() for row in best_jr)}\n"
-            )
+            f.write(f"- Best `JM`: {', '.join(row_label(row) for row in best_jm)}\n")
+            f.write(f"- Best `JR`: {', '.join(row_label(row) for row in best_jr)}\n")
 
 
 def main() -> None:
@@ -154,6 +155,8 @@ def main() -> None:
         if row:
             rows.append(row)
     for variant, method, path in part3_files:
+        if variant in EXCLUDED_PART3_VARIANTS:
+            continue
         row = summarize_list_metrics("part3", variant, method, path)
         if row:
             rows.append(row)

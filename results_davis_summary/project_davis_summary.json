@@ -1,0 +1,92 @@
+[
+  {
+    "part": "part1",
+    "method": "spatial_only",
+    "variant": "",
+    "num_sequences": 91,
+    "avg_JM": 0.24346583439746233,
+    "avg_JR": 0.23551259318202047,
+    "source": "part1/results_davis_full/spatial_only_metrics.json",
+    "notes": ""
+  },
+  {
+    "part": "part1",
+    "method": "temporal_aligned",
+    "variant": "",
+    "num_sequences": 91,
+    "avg_JM": 0.24346583439746233,
+    "avg_JR": 0.23551259318202047,
+    "source": "part1/results_davis_full/temporal_aligned_metrics.json",
+    "notes": ""
+  },
+  {
+    "part": "part1",
+    "method": "temporal_no_align",
+    "variant": "",
+    "num_sequences": 91,
+    "avg_JM": 0.24346583439746233,
+    "avg_JR": 0.23551259318202047,
+    "source": "part1/results_davis_full/temporal_no_align_metrics.json",
+    "notes": ""
+  },
+  {
+    "part": "part2",
+    "method": "sam2_propainter",
+    "variant": "",
+    "num_sequences": 91,
+    "avg_JM": 0.9167439809275267,
+    "avg_JR": 0.9845906254239587,
+    "source": "part2/results_davis_full/sam2_metrics.json",
+    "notes": ""
+  },
+  {
+    "part": "part2",
+    "method": "vggt4d_propainter",
+    "variant": "",
+    "num_sequences": 2,
+    "avg_JM": 0.0,
+    "avg_JR": 0.0,
+    "source": "part2/results_davis_full/vggt4d_metrics.json",
+    "notes": ""
+  },
+  {
+    "part": "part3",
+    "method": "sam3_diffueraser_object",
+    "variant": "sam3",
+    "num_sequences": 90,
+    "avg_JM": 0.7599141826684389,
+    "avg_JR": 0.7943261071475367,
+    "source": "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+    "notes": "DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR."
+  },
+  {
+    "part": "part3",
+    "method": "sam3_diffueraser_side_effect",
+    "variant": "sam3",
+    "num_sequences": 90,
+    "avg_JM": 0.7599141826684389,
+    "avg_JR": 0.7943261071475367,
+    "source": "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+    "notes": "DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR."
+  },
+  {
+    "part": "part3",
+    "method": "sam3_rose_object",
+    "variant": "sam3",
+    "num_sequences": 90,
+    "avg_JM": 0.7599141826684389,
+    "avg_JR": 0.7943261071475367,
+    "source": "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_object.json",
+    "notes": "DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR."
+  },
+  {
+    "part": "part3",
+    "method": "sam3_rose_side_effect",
+    "variant": "sam3",
+    "num_sequences": 90,
+    "avg_JM": 0.7599141826684389,
+    "avg_JR": 0.7943261071475367,
+    "source": "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+    "notes": "DAVIS rows reuse the same SAM 3 object masks; inpainting backend is not part of JM/JR."
+  }
+]
