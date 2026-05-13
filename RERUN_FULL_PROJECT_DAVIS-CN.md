@@ -1,6 +1,6 @@
 # 全量 DAVIS 重跑说明
 
-English version: [RERUN_FULL_PROJECT_DAVIS.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/RERUN_FULL_PROJECT_DAVIS.md)
+English version: [RERUN_FULL_PROJECT_DAVIS.md](RERUN_FULL_PROJECT_DAVIS.md)
 
 这份文档用于指导同学在不使用 `sbatch` 的情况下，直接通过 `python` 命令重跑整个项目。
 
@@ -22,12 +22,13 @@ English version: [RERUN_FULL_PROJECT_DAVIS.md](/hpc2hdd/home/ckwong627/workdir/C
 - 不要在 HPC 登录节点上直接跑重型 GPU 作业。
 - 这次重跑的最终汇总表只保留 DAVIS 的 `JM` 和 `JR`。
 - 旧版 `part1/README.md` 和 `part2/README.md` 里关于 Wild Video 的段落，这次复现时不要再作为最终实验口径。
+- 如果换机器重跑，先修改项目根目录下的 `local_paths.sh`。这个文件统一收口了少数仍然必须依赖本机环境的绝对路径，比如 `conda.sh`、环境名和共享模型根目录。
 
 ## 输出目录
 
 - `part1/results_davis_full/`
 - `part2/results_davis_full/`
-- `part3/outputs_davis_full/`
+- `part3/results/DAVIS_Dataset/`
 - `results_davis_summary/project_davis_summary.md`
 - `results_davis_summary/project_davis_summary.csv`
 - `results_davis_summary/project_davis_summary.json`
@@ -38,8 +39,9 @@ English version: [RERUN_FULL_PROJECT_DAVIS.md](/hpc2hdd/home/ckwong627/workdir/C
 
 ```bash
 cd part1
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv
+conda activate "$PART1_CONDA_ENV"
 ```
 
 运行 Part 1 的三种条件，并覆盖完整 DAVIS：
@@ -66,8 +68,9 @@ python evaluate.py --pred results_davis_full/spatial_only --davis-root ../data/D
 
 ```bash
 cd part2
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv-2
+conda activate "$PART2_CONDA_ENV"
 bash setup.sh
 ```
 
@@ -92,8 +95,9 @@ python evaluate.py --pred results_davis_full/vggt4d --davis-root ../data/DAVIS -
 
 ```bash
 cd part3
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv3
+conda activate "$PART3_CONDA_ENV"
 ```
 
 先确认外部仓库和权重都已经准备好：
@@ -103,7 +107,7 @@ conda activate cv3
 - `external/repository/ROSE`
 - `../part2/external/ProPainter`
 - `models/sam3/`
-- `models/sam3.1/`
+- `models/sam3.1/` 可选，仅在你要补消融时才需要
 - `models/diffuEraser/`
 - `models/Wan2.1-Fun-1.3B-InP/`
 - `models/ROSE_transformer/`
@@ -113,7 +117,8 @@ conda activate cv3
 模型下载默认规则：
 
 - 默认优先使用 `ModelScope`
-- 在当前这套配置里，`SAM 3` 和 `SAM 3.1` 可以直接从 `ModelScope` 下载，因此如果走默认路径，就不需要 `Hugging Face` 访问审批
+- 在当前这套配置里，`SAM 3` 可以直接从 `ModelScope` 下载，因此如果走默认路径，就不需要 `Hugging Face` 访问审批
+- `SAM 3.1` 是可选项，只有你想补消融时才需要准备
 - 如果某个权重当前仍没有被这套 `ModelScope` helper 覆盖，再使用 `part3/README-CN.md` 里写的可选 `Hugging Face` 下载方式
 
 推荐的模型准备命令：
@@ -122,12 +127,24 @@ conda activate cv3
 bash setup.sh
 ```
 
-这是推荐路径。它会先 clone 所需仓库，再下载当前已经确认好的 `ModelScope` 模型，并在 `part3/models/` 下把其余目录也准备好。
+这是推荐路径。它会先 clone 所需仓库，再下载 `SAM 3` 主线和当前已经确认好的 `ModelScope` 模型，并在 `part3/models/` 下把其余目录也准备好。
+
+如果你还想保留 `SAM 3.1` 的可选消融路径，再额外执行：
+
+```bash
+bash setup.sh --include-sam3-1
+```
 
 如果仓库已经 clone 好，只想单独下载模型，也可以执行：
 
 ```bash
 bash scripts/download_models.sh
+```
+
+如果还想一起准备 `SAM 3.1` 的可选消融权重，再额外执行：
+
+```bash
+bash scripts/download_models.sh --include-sam3-1
 ```
 
 先把 DAVIS 帧目录转换成 mp4：
@@ -142,18 +159,24 @@ python scripts/prepare_davis_videos.py --davis-root ../data/DAVIS --output-dir i
 python scripts/run_all_davis_methods.py --config configs/sam3_davis_all.yaml --gpu 0
 ```
 
-运行 SAM 3.1 的完整 DAVIS 实验：
+SLURM 说明：
 
-```bash
-python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml --gpu 0
-```
+- 短时间 `debug` 分区检查请使用 `slurm_scripts/run_part3_sequence_matrix_debug.slurm`。
+- 完整 DAVIS 和其它较长的 sequence-matrix 任务请使用 `slurm_scripts/run_part3_sequence_matrix.slurm`。
 
 说明：
 
 - 这个脚本会使用 DAVIS 第一帧的 GT mask，自动构造 bbox 和 point 来初始化 SAM 3。
 - 这次 DAVIS-only 重跑里，Part 3 的 `JM/JR` 只从 mask 输出上评估。
-- 因此 Part 3 里四种方法在 DAVIS 上会复用同一套 object masks，inpainting backend 不参与 DAVIS `JM/JR` 计算。
-- 模型下载默认优先使用 `ModelScope`。在当前这套配置里，`SAM 3` 和 `SAM 3.1` 已经可以直接从那里下载；`Hugging Face` 只作为其余 upstream-only 项目的可选补充下载源。
+- Part 3 的四种方法仍然都会真正执行，并各自生成输出文件，统一写到 `part3/results/DAVIS_Dataset/`。
+- 但是 DAVIS 打分仍然只看 object mask 输出，inpainting backend 不参与 DAVIS `JM/JR` 计算。
+- 模型下载默认优先使用 `ModelScope`。`SAM 3` 属于默认重跑主线；`SAM 3.1` 只保留为可选消融。
+
+如果你确实还想补 `SAM 3.1` 的可选消融，再单独运行：
+
+```bash
+python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml --gpu 0
+```
 
 ## 生成跨 Part 最终总表
 
@@ -182,5 +205,9 @@ python scripts/build_project_davis_summary.py
 1. `part1`
 2. `part2`
 3. `part3` 的 `sam3`
-4. `part3` 的 `sam3.1`
-5. `scripts/build_project_davis_summary.py`
+4. `scripts/build_project_davis_summary.py`
+
+可选：
+
+5. `part3` 的 `sam3.1` 消融
+6. `python scripts/build_project_davis_summary.py --include-sam3-1`

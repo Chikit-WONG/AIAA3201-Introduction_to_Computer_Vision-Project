@@ -3,6 +3,21 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODEL_ROOT="${MODEL_ROOT:-$ROOT_DIR/models}"
+INCLUDE_SAM3_1=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --include-sam3-1)
+      INCLUDE_SAM3_1=1
+      shift
+      ;;
+    *)
+      echo "[ERROR] Unknown argument: $1"
+      echo "Usage: bash scripts/download_models.sh [--include-sam3-1]"
+      exit 1
+      ;;
+  esac
+done
 
 download_modelscope_repo() {
   local model_id="$1"
@@ -27,10 +42,15 @@ PY
 
 echo "Using MODEL_ROOT=$MODEL_ROOT"
 echo "Default download source: ModelScope"
-echo "This script downloads only the weights with verified ModelScope mirrors in this project."
+echo "This script downloads the SAM 3 mainline by default and keeps SAM 3.1 optional."
 
 download_modelscope_repo "facebook/sam3" "$MODEL_ROOT/sam3"
-download_modelscope_repo "facebook/sam3.1" "$MODEL_ROOT/sam3.1"
+if [[ "$INCLUDE_SAM3_1" == "1" ]]; then
+  download_modelscope_repo "facebook/sam3.1" "$MODEL_ROOT/sam3.1"
+else
+  mkdir -p "$MODEL_ROOT/sam3.1"
+  echo "[=] Skipping SAM 3.1 by default. Use --include-sam3-1 for the optional ablation path."
+fi
 download_modelscope_repo "xingzi/diffuEraser" "$MODEL_ROOT/diffuEraser"
 download_modelscope_repo "PAI/Wan2.1-Fun-1.3B-InP" "$MODEL_ROOT/Wan2.1-Fun-1.3B-InP"
 

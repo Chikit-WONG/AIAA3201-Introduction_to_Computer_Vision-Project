@@ -10,7 +10,6 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "results_davis_summary"
-EXCLUDED_PART3_VARIANTS = {"sam3.1"}
 
 
 def average(values: list[float]) -> float | None:
@@ -31,17 +30,29 @@ def load_list_metrics(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def first_existing_path(*candidates: Path) -> Path:
+    for path in candidates:
+        if path.is_file():
+            return path
+    return candidates[0]
+
+
 def summarize_dict_metrics(part: str, method: str, path: Path) -> dict | None:
     records = load_dict_metrics(path)
     if not records:
         return None
-    jm_values = [float(item["JM"]) for item in records.values() if "JM" in item]
-    jr_values = [float(item["JR"]) for item in records.values() if "JR" in item]
+    sequence_records = {
+        key: value
+        for key, value in records.items()
+        if key != "average" and isinstance(value, dict)
+    }
+    jm_values = [float(item["JM"]) for item in sequence_records.values() if "JM" in item]
+    jr_values = [float(item["JR"]) for item in sequence_records.values() if "JR" in item]
     return {
         "part": part,
         "method": method,
         "variant": "",
-        "num_sequences": len(records),
+        "num_sequences": len(sequence_records),
         "avg_JM": average(jm_values),
         "avg_JR": average(jr_values),
         "source": str(path.relative_to(PROJECT_ROOT)),
@@ -124,6 +135,11 @@ def write_markdown(path: Path, rows: list[dict]) -> None:
 
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--include-sam3-1", action="store_true")
+    args = parser.parse_args()
+
     rows: list[dict] = []
 
     part1_files = [
@@ -136,15 +152,60 @@ def main() -> None:
         ("vggt4d_propainter", PROJECT_ROOT / "part2/results_davis_full/vggt4d_metrics.json"),
     ]
     part3_files = [
-        ("sam3", "sam3_diffueraser_object", PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json"),
-        ("sam3", "sam3_diffueraser_side_effect", PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json"),
-        ("sam3", "sam3_rose_object", PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_object.json"),
-        ("sam3", "sam3_rose_side_effect", PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json"),
-        ("sam3.1", "sam3_diffueraser_object", PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_object.json"),
-        ("sam3.1", "sam3_diffueraser_side_effect", PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json"),
-        ("sam3.1", "sam3_rose_object", PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_object.json"),
-        ("sam3.1", "sam3_rose_side_effect", PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_side_effect.json"),
+        ("sam3", "sam3_propainter", first_existing_path(
+            PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3/metrics/davis_mask_metrics__sam3_propainter.json",
+            PROJECT_ROOT / "part3/outputs/davis_full/sam3/metrics/davis_mask_metrics__sam3_propainter.json",
+            PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_propainter.json",
+        )),
+        ("sam3", "sam3_diffueraser_object", first_existing_path(
+            PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+            PROJECT_ROOT / "part3/outputs/davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+            PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+        )),
+        ("sam3", "sam3_diffueraser_side_effect", first_existing_path(
+            PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+            PROJECT_ROOT / "part3/outputs/davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+            PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+        )),
+        ("sam3", "sam3_rose_object", first_existing_path(
+            PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3/metrics/davis_mask_metrics__sam3_rose_object.json",
+            PROJECT_ROOT / "part3/outputs/davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_object.json",
+            PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_object.json",
+        )),
+        ("sam3", "sam3_rose_side_effect", first_existing_path(
+            PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+            PROJECT_ROOT / "part3/outputs/davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+            PROJECT_ROOT / "part3/outputs_davis_full/sam3/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+        )),
     ]
+    if args.include_sam3_1:
+        part3_files.extend([
+            ("sam3.1", "sam3_propainter", first_existing_path(
+                PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3_1/metrics/davis_mask_metrics__sam3_propainter.json",
+                PROJECT_ROOT / "part3/outputs/davis_full/sam3_1/metrics/davis_mask_metrics__sam3_propainter.json",
+                PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_propainter.json",
+            )),
+            ("sam3.1", "sam3_diffueraser_object", first_existing_path(
+                PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+                PROJECT_ROOT / "part3/outputs/davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+                PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_object.json",
+            )),
+            ("sam3.1", "sam3_diffueraser_side_effect", first_existing_path(
+                PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+                PROJECT_ROOT / "part3/outputs/davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+                PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_diffueraser_side_effect.json",
+            )),
+            ("sam3.1", "sam3_rose_object", first_existing_path(
+                PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3_1/metrics/davis_mask_metrics__sam3_rose_object.json",
+                PROJECT_ROOT / "part3/outputs/davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_object.json",
+                PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_object.json",
+            )),
+            ("sam3.1", "sam3_rose_side_effect", first_existing_path(
+                PROJECT_ROOT / "part3/results/DAVIS_Dataset/sam3_1/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+                PROJECT_ROOT / "part3/outputs/davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+                PROJECT_ROOT / "part3/outputs_davis_full/sam3_1/metrics/davis_mask_metrics__sam3_rose_side_effect.json",
+            )),
+        ])
 
     for method, path in part1_files:
         row = summarize_dict_metrics("part1", method, path)
@@ -155,8 +216,6 @@ def main() -> None:
         if row:
             rows.append(row)
     for variant, method, path in part3_files:
-        if variant in EXCLUDED_PART3_VARIANTS:
-            continue
         row = summarize_list_metrics("part3", variant, method, path)
         if row:
             rows.append(row)

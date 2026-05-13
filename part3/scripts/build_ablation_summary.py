@@ -55,8 +55,8 @@ def main() -> None:
 
     part3_root = os.path.abspath(args.part3_root)
     variants = {
-        "sam3": os.path.join(part3_root, "outputs_ablation", "sam3", "metrics"),
-        "sam3.1": os.path.join(part3_root, "outputs_ablation", "sam3_1", "metrics"),
+        "sam3": os.path.join(part3_root, "results_debug", "ablation", "sam3", "metrics"),
+        "sam3.1": os.path.join(part3_root, "results_debug", "ablation", "sam3_1", "metrics"),
     }
 
     rows = []
@@ -77,7 +77,7 @@ def main() -> None:
         "avg_wild_PSNR",
         "avg_wild_SSIM",
     ]
-    output_dir = os.path.join(part3_root, "outputs_ablation", "summary")
+    output_dir = os.path.join(part3_root, "results_debug", "ablation", "summary")
     write_csv(os.path.join(output_dir, "sam3_vs_sam3_1_ablation.csv"), fieldnames, rows)
     write_markdown(os.path.join(output_dir, "sam3_vs_sam3_1_ablation.md"), fieldnames, rows)
     with open(os.path.join(output_dir, "sam3_vs_sam3_1_ablation.json"), "w", encoding="utf-8") as f:

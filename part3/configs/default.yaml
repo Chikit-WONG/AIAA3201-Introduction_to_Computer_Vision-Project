@@ -1,7 +1,7 @@
 # Part 3 default configuration
 
 project_root: ".."
-output_root: "outputs"
+output_root: "results/Wild_Video"
 device: "cuda"
 gpu_id: 0
 

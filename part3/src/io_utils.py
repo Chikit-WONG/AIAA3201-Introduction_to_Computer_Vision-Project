@@ -46,10 +46,23 @@ def slugify(text: str) -> str:
     return slug or "default"
 
 
+def sam3_variant_slug(version: str | None) -> str:
+    normalized = str(version or "sam3").strip().lower()
+    if normalized in {"sam3.1", "sam3_1", "sam31"}:
+        return "sam3_1"
+    return "sam3"
+
+
+def part3_method_output_slug(method: str, sam3_version: str | None = None) -> str:
+    if method.startswith("sam3_") and sam3_variant_slug(sam3_version) == "sam3_1":
+        suffix = method[len("sam3_"):]
+        return slugify(f"sam3_1_{suffix}")
+    return slugify(method)
+
+
 def resolve_path(base_dir: str, maybe_relative: str) -> str:
     if not maybe_relative:
         return maybe_relative
     if os.path.isabs(maybe_relative):
         return maybe_relative
     return os.path.abspath(os.path.join(base_dir, maybe_relative))
-

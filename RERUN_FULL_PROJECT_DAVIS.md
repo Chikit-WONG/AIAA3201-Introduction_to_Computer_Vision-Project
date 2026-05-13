@@ -1,6 +1,6 @@
 # Full DAVIS Rerun Guide
 
-中文版本: [RERUN_FULL_PROJECT_DAVIS-CN.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/RERUN_FULL_PROJECT_DAVIS-CN.md)
+中文版本: [RERUN_FULL_PROJECT_DAVIS-CN.md](RERUN_FULL_PROJECT_DAVIS-CN.md)
 
 This guide is for rerunning the whole project with direct `python` commands instead of `sbatch`.
 
@@ -22,12 +22,13 @@ This guide is for rerunning the whole project with direct `python` commands inst
 - Do not run heavy GPU jobs directly on an HPC login node.
 - For this rerun, the final summary table keeps only DAVIS `JM` and `JR`.
 - Ignore the old Wild Video sections in the older `part1/README.md` and `part2/README.md` when reproducing the final report.
+- Before rerunning on another machine, edit `local_paths.sh` in the project root first. That file centralizes the remaining machine-specific absolute paths such as `conda.sh`, env names, and the legacy shared model root.
 
 ## Output Targets
 
 - `part1/results_davis_full/`
 - `part2/results_davis_full/`
-- `part3/outputs_davis_full/`
+- `part3/results/DAVIS_Dataset/`
 - `results_davis_summary/project_davis_summary.md`
 - `results_davis_summary/project_davis_summary.csv`
 - `results_davis_summary/project_davis_summary.json`
@@ -38,8 +39,9 @@ Create the Part 1 environment:
 
 ```bash
 cd part1
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv
+conda activate "$PART1_CONDA_ENV"
 ```
 
 Run the three Part 1 conditions on the full DAVIS dataset:
@@ -66,8 +68,9 @@ Create the Part 2 environment:
 
 ```bash
 cd part2
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv2
+conda activate "$PART2_CONDA_ENV"
 bash setup.sh
 ```
 
@@ -92,8 +95,9 @@ Create the Part 3 environment:
 
 ```bash
 cd part3
+source ../local_paths.sh
 conda env create -f environment.yml
-conda activate cv2
+conda activate "$PART3_CONDA_ENV"
 ```
 
 Prepare external repositories and checkpoints first:
@@ -103,7 +107,7 @@ Prepare external repositories and checkpoints first:
 - `external/repository/ROSE`
 - `../part2/external/ProPainter`
 - `models/sam3/`
-- `models/sam3.1/`
+- `models/sam3.1/` optional, only if you also want the ablation path
 - `models/diffuEraser/`
 - `models/Wan2.1-Fun-1.3B-InP/`
 - `models/ROSE_transformer/`
@@ -113,7 +117,8 @@ Prepare external repositories and checkpoints first:
 Default model download source:
 
 - Prefer `ModelScope` first.
-- `SAM 3` and `SAM 3.1` can be downloaded from `ModelScope` in the current setup, so Hugging Face access approval is not required if you stay on the default path.
+- `SAM 3` can be downloaded from `ModelScope` in the current setup, so Hugging Face access approval is not required if you stay on the default path.
+- `SAM 3.1` is optional and should only be prepared if you want the ablation path.
 - If a required checkpoint is still not covered by the current `ModelScope` helper, use the optional upstream `Hugging Face` path described in `part3/README.md`.
 
 Recommended model preparation commands:
@@ -122,12 +127,24 @@ Recommended model preparation commands:
 bash setup.sh
 ```
 
-This is the recommended path. It clones the required repositories, downloads the currently confirmed `ModelScope` items, and prepares the remaining model directories under `part3/models/`.
+This is the recommended path. It clones the required repositories, downloads the `SAM 3` mainline plus the currently confirmed `ModelScope` items, and prepares the remaining model directories under `part3/models/`.
+
+If you also want the optional `SAM 3.1` ablation path:
+
+```bash
+bash setup.sh --include-sam3-1
+```
 
 If the repositories are already cloned and you want only the model step:
 
 ```bash
 bash scripts/download_models.sh
+```
+
+If you also want the optional `SAM 3.1` ablation weights:
+
+```bash
+bash scripts/download_models.sh --include-sam3-1
 ```
 
 Generate DAVIS mp4 files once:
@@ -142,18 +159,24 @@ Run SAM 3 on the full DAVIS dataset:
 python scripts/run_all_davis_methods.py --config configs/sam3_davis_all.yaml --gpu 0
 ```
 
-Run SAM 3.1 on the full DAVIS dataset:
+SLURM note:
 
-```bash
-python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml --gpu 0
-```
+- Use `slurm_scripts/run_part3_sequence_matrix_debug.slurm` for short `debug`-partition checks.
+- Use `slurm_scripts/run_part3_sequence_matrix.slurm` for full DAVIS and other longer sequence-matrix runs.
 
 Notes:
 
 - This script uses the first-frame DAVIS annotation to initialize SAM 3 with a GT-derived bbox and point prompt.
 - For the DAVIS-only rerun, Part 3 `JM/JR` is evaluated from the mask output only.
-- Therefore, the four Part 3 method rows reuse the same object masks on DAVIS. The inpainting backend is not part of DAVIS `JM/JR`.
-- For model downloads, the default preference is `ModelScope`. In the current setup, `SAM 3` and `SAM 3.1` are available there, while `Hugging Face` remains an optional fallback for the remaining upstream-only items.
+- All four Part 3 methods are still executed and will each produce their own output files under `part3/results/DAVIS_Dataset/`.
+- The DAVIS score still uses only the object-mask output. The inpainting backend is not part of DAVIS `JM/JR`.
+- For model downloads, the default preference is `ModelScope`. `SAM 3` is part of the default rerun path. `SAM 3.1` remains optional.
+
+Optional ablation only:
+
+```bash
+python scripts/run_all_davis_methods.py --config configs/sam3_1_davis_all.yaml --gpu 0
+```
 
 ## Build the Final Cross-Part Table
 
@@ -182,5 +205,9 @@ Do this before trusting any future Wild Video experiment:
 1. `part1`
 2. `part2`
 3. `part3` `sam3`
-4. `part3` `sam3.1`
-5. `scripts/build_project_davis_summary.py`
+4. `scripts/build_project_davis_summary.py`
+
+Optional:
+
+5. `part3` `sam3.1` ablation
+6. `python scripts/build_project_davis_summary.py --include-sam3-1`

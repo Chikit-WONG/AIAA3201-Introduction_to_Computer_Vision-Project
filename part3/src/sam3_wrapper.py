@@ -6,6 +6,7 @@ import gc
 import getpass
 import importlib.util
 import inspect
+import json
 import os
 import shutil
 import sys
@@ -197,27 +198,33 @@ class SAM3MaskGenerator:
             resource_path=frames_dir,
             async_loading_frames=async_loading_frames,
         )
-        # The tracker path requires cached backbone features for the annotated frame.
-        # Build them through the video inference model first, then derive the tracker state.
-        video_model._prepare_backbone_feats(
-            video_inference_state,
-            frame_idx=frame_index,
-            reverse=False,
+        # The tracker path reads cached backbone features instead of owning a
+        # standalone backbone. Cache all frames before handing state to tracker.
+        num_frames = int(video_inference_state["num_frames"])
+        tracker_feature_cache = {}
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=torch.cuda.is_available()):
+            for idx in range(num_frames):
+                video_model._prepare_backbone_feats(
+                    video_inference_state,
+                    frame_idx=idx,
+                    reverse=False,
+                )
+                if idx in video_inference_state["feature_cache"]:
+                    tracker_feature_cache[idx] = video_inference_state["feature_cache"][idx]
+        missing_features = [idx for idx in range(num_frames) if idx not in tracker_feature_cache]
+        if missing_features:
+            raise RuntimeError(f"Missing tracker features for frames: {missing_features[:10]}")
+        tracker_init_kwargs = dict(
+            cached_features=tracker_feature_cache,
+            video_height=video_inference_state["orig_height"],
+            video_width=video_inference_state["orig_width"],
+            num_frames=video_inference_state["num_frames"],
+            offload_state_to_cpu=video_inference_state.get("offload_state_to_cpu", False),
         )
-        if hasattr(video_model, "_init_new_tracker_state"):
-            inference_state = video_model._init_new_tracker_state(video_inference_state)
-        else:
-            tracker_init_kwargs = dict(
-                cached_features=video_inference_state["feature_cache"],
-                video_height=video_inference_state["orig_height"],
-                video_width=video_inference_state["orig_width"],
-                num_frames=video_inference_state["num_frames"],
-                offload_state_to_cpu=video_inference_state.get("offload_state_to_cpu", False),
-            )
-            valid_params = set(inspect.signature(tracker.init_state).parameters.keys())
-            inference_state = tracker.init_state(
-                **{key: value for key, value in tracker_init_kwargs.items() if key in valid_params}
-            )
+        valid_params = set(inspect.signature(tracker.init_state).parameters.keys())
+        inference_state = tracker.init_state(
+            **{key: value for key, value in tracker_init_kwargs.items() if key in valid_params}
+        )
         if "images" not in inference_state:
             tracker_images, _video_height, _video_width = load_video_frames(
                 video_path=frames_dir,
@@ -232,22 +239,23 @@ class SAM3MaskGenerator:
             raise FileNotFoundError(f"Initial mask not found or unreadable: {init_mask_path}")
         init_mask_tensor = torch.from_numpy((init_mask > 0).astype(np.uint8))
 
-        if hasattr(tracker, "add_new_masks"):
-            tracker.add_new_masks(
-                inference_state=inference_state,
-                frame_idx=frame_index,
-                obj_ids=[1],
-                masks=init_mask_tensor.unsqueeze(0),
-                add_mask_to_memory=True,
-            )
-        else:
-            tracker.add_new_mask(
-                inference_state=inference_state,
-                frame_idx=frame_index,
-                obj_id=1,
-                mask=init_mask_tensor,
-                add_mask_to_memory=True,
-            )
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=torch.cuda.is_available()):
+            if hasattr(tracker, "add_new_masks"):
+                tracker.add_new_masks(
+                    inference_state=inference_state,
+                    frame_idx=frame_index,
+                    obj_ids=[1],
+                    masks=init_mask_tensor.unsqueeze(0),
+                    add_mask_to_memory=True,
+                )
+            else:
+                tracker.add_new_mask(
+                    inference_state=inference_state,
+                    frame_idx=frame_index,
+                    obj_id=1,
+                    mask=init_mask_tensor,
+                    add_mask_to_memory=True,
+                )
 
         propagate_kwargs = dict(
             inference_state=inference_state,
@@ -262,20 +270,21 @@ class SAM3MaskGenerator:
         }
 
         mask_dict: dict[int, dict[int, np.ndarray]] = {}
-        for frame_idx, obj_ids, _low_res_masks, video_res_masks, _obj_scores in tracker.propagate_in_video(
-            **filtered_propagate_kwargs,
-        ):
-            if isinstance(obj_ids, torch.Tensor):
-                obj_ids = obj_ids.detach().cpu().numpy()
-            if isinstance(video_res_masks, torch.Tensor):
-                video_res_masks = video_res_masks.detach().cpu().numpy()
-            frame_masks: dict[int, np.ndarray] = {}
-            for idx, object_id in enumerate(obj_ids):
-                mask = video_res_masks[idx]
-                if mask.ndim == 3:
-                    mask = mask[0]
-                frame_masks[int(object_id)] = (mask > 0).astype(np.uint8) * 255
-            mask_dict[int(frame_idx)] = frame_masks
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=torch.cuda.is_available()):
+            for frame_idx, obj_ids, _low_res_masks, video_res_masks, _obj_scores in tracker.propagate_in_video(
+                **filtered_propagate_kwargs,
+            ):
+                if isinstance(obj_ids, torch.Tensor):
+                    obj_ids = obj_ids.detach().cpu().numpy()
+                if isinstance(video_res_masks, torch.Tensor):
+                    video_res_masks = video_res_masks.detach().cpu().numpy()
+                frame_masks: dict[int, np.ndarray] = {}
+                for idx, object_id in enumerate(obj_ids):
+                    mask = video_res_masks[idx]
+                    if mask.ndim == 3:
+                        mask = mask[0]
+                    frame_masks[int(object_id)] = (mask > 0).astype(np.uint8) * 255
+                mask_dict[int(frame_idx)] = frame_masks
 
         if torch.cuda.is_available():
             torch.cuda.synchronize()
@@ -291,10 +300,89 @@ class SAM3MaskGenerator:
         return overlay
 
     @staticmethod
-    def _build_prompt_request(prompt: str | None, init_mask_path: str | None) -> dict[str, Any]:
+    def _resize_mask_to_frame(mask: np.ndarray, frame_shape: tuple[int, int]) -> np.ndarray:
+        frame_h, frame_w = frame_shape
+        if mask.shape[:2] == (frame_h, frame_w):
+            return (mask > 0).astype(np.uint8) * 255
+        return cv2.resize(
+            (mask > 0).astype(np.uint8) * 255,
+            (frame_w, frame_h),
+            interpolation=cv2.INTER_NEAREST,
+        )
+
+    @staticmethod
+    def _write_mask_stats(stats_path: str, frame_stats: list[dict[str, Any]], init_mask_path: str | None) -> dict[str, Any]:
+        total_frames = len(frame_stats)
+        zero_frames = sum(1 for item in frame_stats if item["nonzero_pixels"] == 0)
+        mean_nonzero = (
+            float(sum(item["nonzero_pixels"] for item in frame_stats)) / float(total_frames)
+            if total_frames
+            else 0.0
+        )
+        summary = {
+            "num_frames": total_frames,
+            "zero_frames": zero_frames,
+            "zero_frame_ratio": float(zero_frames) / float(total_frames) if total_frames else 1.0,
+            "mean_nonzero_pixels": mean_nonzero,
+            "init_mask_path": init_mask_path,
+            "frames": frame_stats,
+        }
+        ensure_dir(os.path.dirname(stats_path))
+        with open(stats_path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+        return summary
+
+    @staticmethod
+    def _validate_mask_stats(summary: dict[str, Any], init_mask_path: str | None, stats_path: str) -> None:
+        num_frames = int(summary["num_frames"])
+        zero_frames = int(summary["zero_frames"])
+        zero_ratio = float(summary["zero_frame_ratio"])
+        frames = summary.get("frames", [])
+        first_nonzero = int(frames[0]["nonzero_pixels"]) if frames else 0
+
+        if num_frames == 0:
+            raise RuntimeError(f"No masks were generated. See {stats_path}")
+        if zero_frames == num_frames:
+            raise RuntimeError(f"SAM 3 generated all-empty masks. See {stats_path}")
+        if init_mask_path and first_nonzero == 0:
+            raise RuntimeError(f"SAM 3 generated an empty first-frame mask from --init-mask. See {stats_path}")
+        if zero_ratio > 0.5:
+            raise RuntimeError(
+                f"SAM 3 generated too many empty masks ({zero_frames}/{num_frames}). See {stats_path}"
+            )
+
+    @staticmethod
+    def _build_prompt_request(
+        prompt: str | None,
+        init_mask_path: str | None,
+        frame_shape: tuple[int, int] | None = None,
+    ) -> dict[str, Any]:
         request: dict[str, Any] = {}
 
         if init_mask_path:
+            init_mask = cv2.imread(init_mask_path, cv2.IMREAD_GRAYSCALE)
+            if init_mask is None:
+                raise FileNotFoundError(f"Initial mask not found or unreadable: {init_mask_path}")
+            if frame_shape is None:
+                raise ValueError("frame_shape is required when building prompts from --init-mask.")
+            ys, xs = np.where(init_mask > 0)
+            if len(xs) == 0 or len(ys) == 0:
+                raise ValueError(f"Initial mask is empty: {init_mask_path}")
+            x_min = int(xs.min())
+            y_min = int(ys.min())
+            x_max = int(xs.max())
+            y_max = int(ys.max())
+            width = max(1, x_max - x_min + 1)
+            height = max(1, y_max - y_min + 1)
+            frame_h, frame_w = frame_shape
+            request["bounding_boxes"] = [[
+                float(x_min) / float(frame_w),
+                float(y_min) / float(frame_h),
+                float(width) / float(frame_w),
+                float(height) / float(frame_h),
+            ]]
+            request["bounding_box_labels"] = [1]
+            request["rel_coordinates"] = True
             return request
 
         if prompt:
@@ -327,32 +415,27 @@ class SAM3MaskGenerator:
 
         model = self._build_model()
         session_id = None
+        frame_shape = cv2.imread(frame_paths[self.frame_index]).shape[:2]
         if init_mask_path:
-            response = model.handle_request(
-                {"type": "start_session", "resource_path": frames_dir}
+            # For DAVIS-style evaluation, use the provided first-frame binary mask
+            # directly. Converting it to a box prompt can silently produce empty masks.
+            mask_dict = self._collect_tracker_propagation(
+                model,
+                frames_dir=frames_dir,
+                init_mask_path=init_mask_path,
+                frame_index=self.frame_index,
+                async_loading_frames=self.async_loading_frames,
             )
-            session_id = response["session_id"]
-            session_state = model._all_inference_states[session_id]["state"]
             init_mask = cv2.imread(init_mask_path, cv2.IMREAD_GRAYSCALE)
             if init_mask is None:
                 raise FileNotFoundError(f"Initial mask not found or unreadable: {init_mask_path}")
-            init_mask_tensor = torch.from_numpy((init_mask > 0).astype(np.uint8))
-            model.model.add_sam2_new_mask(
-                session_state,
-                frame_idx=self.frame_index,
-                obj_id=1,
-                mask=init_mask_tensor,
-            )
-            mask_dict = self._collect_propagation(
-                model,
-                session_id,
-                start_frame_index=self.frame_index,
-                propagation_direction="forward",
-            )
-            initial_mask = (init_mask > 0).astype(np.uint8) * 255
-            mask_dict[self.frame_index] = {1: initial_mask}
+            mask_dict.setdefault(self.frame_index, {})[1] = self._resize_mask_to_frame(init_mask, frame_shape)
         else:
-            prompt_request = self._build_prompt_request(prompt, init_mask_path)
+            prompt_request = self._build_prompt_request(
+                prompt,
+                init_mask_path,
+                frame_shape=frame_shape,
+            )
             if not prompt_request:
                 raise ValueError("SAM 3 requires either a text prompt or --init-mask.")
             response = model.handle_request(
@@ -377,21 +460,36 @@ class SAM3MaskGenerator:
         info = get_video_info(input_video)
         overlay_frames = []
         mask_video_frames = []
+        frame_stats = []
         for idx, frame_path in enumerate(frame_paths):
             frame_bgr = cv2.imread(frame_path)
             masks = mask_dict.get(idx, {})
             combined = union_masks(*masks.values()) if masks else np.zeros(frame_bgr.shape[:2], dtype=np.uint8)
-            save_mask(os.path.join(output_mask_dir, f"{idx:05d}.png"), combined)
+            mask_path = save_mask(os.path.join(output_mask_dir, f"{idx:05d}.png"), combined)
+            nonzero_pixels = int(np.count_nonzero(combined))
+            frame_stats.append(
+                {
+                    "frame_index": idx,
+                    "mask_path": mask_path,
+                    "nonzero_pixels": nonzero_pixels,
+                    "coverage": float(nonzero_pixels) / float(combined.shape[0] * combined.shape[1]),
+                }
+            )
             if output_overlay_video:
                 overlay_text = prompt or (Path(init_mask_path).stem if init_mask_path else None)
                 overlay_frames.append(self._render_overlay(frame_bgr, combined, text=overlay_text))
             if output_mask_video:
                 mask_video_frames.append(cv2.cvtColor(combined, cv2.COLOR_GRAY2BGR))
 
+        stats_path = os.path.join(os.path.dirname(output_mask_dir), "mask_stats.json")
+        stats_summary = self._write_mask_stats(stats_path, frame_stats, init_mask_path)
+
         if output_overlay_video and overlay_frames:
             write_video(overlay_frames, output_overlay_video, info["fps"] or 25.0)
         if output_mask_video and mask_video_frames:
             write_video(mask_video_frames, output_mask_video, info["fps"] or 25.0)
+
+        self._validate_mask_stats(stats_summary, init_mask_path, stats_path)
 
         if session_id is not None:
             try:
@@ -411,6 +509,7 @@ class SAM3MaskGenerator:
             "init_mask_path": init_mask_path,
             "num_frames": len(frame_paths),
             "mask_dir": output_mask_dir,
+            "mask_stats": stats_path,
             "mask_video": output_mask_video,
             "overlay_video": output_overlay_video,
         }

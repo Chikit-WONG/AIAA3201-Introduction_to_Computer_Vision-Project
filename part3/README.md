@@ -1,6 +1,6 @@
 # Part 3
 
-Part 3 implements the final video object removal pipeline for the course project. The pipeline uses `SAM 3` or `SAM 3.1` for video mask generation, then applies one of two inpainting backends:
+Part 3 implements the final video object removal pipeline for the course project. The production path uses `SAM 3` for video mask generation, then applies one of two inpainting backends:
 
 - `DiffuEraser`
 - `ROSE`
@@ -11,7 +11,7 @@ It also supports a side-effect-aware mask expansion stage for shadows, reflectio
 
 The goal of Part 3 is to remove people from videos while improving over the Part 2 baseline by:
 
-- upgrading the segmenter from `SAM 2` to `SAM 3` / `SAM 3.1`
+- upgrading the segmenter from `SAM 2` to `SAM 3`
 - adding diffusion-based inpainting backends
 - explicitly handling side effects around the removed object
 
@@ -33,15 +33,18 @@ In practice, the final Part 3 experiments focus on:
 - `sam3_rose_object`
 - `sam3_rose_side_effect`
 
-The same full pipeline was also run with `SAM 3.1` through dedicated configs.
+`SAM 3.1` is kept only as an optional ablation path. It is no longer part of the required default rerun.
 
 ## Setup
+
+Before running Part 3 on another machine, edit `../local_paths.sh` first. Most paths in this project are already relative. That file centralizes the small set of machine-specific absolute paths that cannot be inferred safely, such as the `conda.sh` location, environment names, and the optional legacy shared model root.
 
 ### 1. Create Conda Environment
 
 ```bash
 conda env create -f environment.yml
-conda activate cv2
+source ../local_paths.sh
+conda activate "$PART3_CONDA_ENV"
 ```
 
 If you prefer manual installation, use:
@@ -61,7 +64,8 @@ The easiest setup path is now:
 
 ```bash
 conda env create -f environment.yml
-conda activate cv2
+source ../local_paths.sh
+conda activate "$PART3_CONDA_ENV"
 bash setup.sh
 ```
 
@@ -71,21 +75,31 @@ This script:
 - installs the helper download packages
 - downloads model weights into `models/`
 - prefers `ModelScope` by default
-- downloads `SAM 3` and `SAM 3.1` from `ModelScope` by default, so no Hugging Face access approval is required on the default path
+- downloads the `SAM 3` mainline weights by default
 - automatically falls back to `Hugging Face` for weights without a confirmed `ModelScope` mirror in this project
 - assumes the Part 3 conda environment is already activated
+
+If you also want the optional `SAM 3.1` ablation path, run:
+
+```bash
+source ../local_paths.sh
+conda activate "$PART3_CONDA_ENV"
+bash setup.sh --include-sam3-1
+```
 
 If you want to force Hugging Face as the preferred source, run:
 
 ```bash
-conda activate cv2
+source ../local_paths.sh
+conda activate "$PART3_CONDA_ENV"
 bash setup.sh --source hf
 ```
 
 If you want to keep automatic fallback behavior explicit, you can also run:
 
 ```bash
-conda activate cv2
+source ../local_paths.sh
+conda activate "$PART3_CONDA_ENV"
 bash setup.sh --source auto
 ```
 
@@ -133,13 +147,19 @@ Automatic download script:
 bash scripts/download_models.sh
 ```
 
+If you also want the optional `SAM 3.1` ablation weights:
+
+```bash
+bash scripts/download_models.sh --include-sam3-1
+```
+
 The default model root is the relative path `models/` under `part3/`.
 The script uses **ModelScope by default** for the weights whose ModelScope mirrors are explicitly confirmed in this project setup.
 
 Model checkpoints are configured by relative paths in the YAML files. They are expected under:
 
 - `models/sam3`
-- `models/sam3.1`
+- `models/sam3.1` optional, only for the ablation path
 - `models/diffuEraser`
 - `models/sd-vae-ft-mse`
 - `models/stable-diffusion-v1-5`
@@ -151,7 +171,7 @@ Model sources and download targets:
 | Component | Source URL | Download-to Directory | Notes |
 | --- | --- | --- | --- |
 | `SAM 3` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3` | `models/sam3` | Default source in this project. `Hugging Face` remains optional: `https://huggingface.co/facebook/sam3`. |
-| `SAM 3.1` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3.1` | `models/sam3.1` | Default source in this project. `Hugging Face` remains optional: `https://huggingface.co/facebook/sam3.1`. |
+| `SAM 3.1` checkpoint bundle | `https://modelscope.cn/models/facebook/sam3.1` | `models/sam3.1` | Optional ablation-only checkpoint. `Hugging Face` remains optional: `https://huggingface.co/facebook/sam3.1`. |
 | `DiffuEraser` weights | `https://www.modelscope.cn/models/xingzi/diffuEraser` | `models/diffuEraser` | Downloaded by `scripts/download_models.sh`. |
 | `sd-vae-ft-mse` | `https://huggingface.co/stabilityai/sd-vae-ft-mse` | `models/sd-vae-ft-mse` | Used by `DiffuEraser`. Manual upstream download. |
 | `stable-diffusion-v1-5` base model | `https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5` | `models/stable-diffusion-v1-5` | Used by `DiffuEraser`. Manual upstream download. |
@@ -166,9 +186,17 @@ pip install modelscope
 python - <<'PY'
 from modelscope import snapshot_download
 snapshot_download('facebook/sam3', local_dir='models/sam3')
-snapshot_download('facebook/sam3.1', local_dir='models/sam3.1')
 snapshot_download('xingzi/diffuEraser', local_dir='models/diffuEraser')
 snapshot_download('PAI/Wan2.1-Fun-1.3B-InP', local_dir='models/Wan2.1-Fun-1.3B-InP')
+PY
+```
+
+Optional `SAM 3.1` ablation download:
+
+```bash
+python - <<'PY'
+from modelscope import snapshot_download
+snapshot_download('facebook/sam3.1', local_dir='models/sam3.1')
 PY
 ```
 
@@ -184,18 +212,18 @@ hf download stable-diffusion-v1-5/stable-diffusion-v1-5 --local-dir models/stabl
 hf download Kunbyte/ROSE --local-dir models/ROSE_transformer
 ```
 
-Optional Hugging Face downloads for `SAM 3` and `SAM 3.1`:
+Optional Hugging Face download for `SAM 3.1`:
 
 ```bash
 hf auth login
-hf download facebook/sam3 --local-dir models/sam3
 hf download facebook/sam3.1 --local-dir models/sam3.1
 ```
 
 Notes:
 
 - Default source is ModelScope where this project has a confirmed ModelScope mirror.
-- `SAM 3` and `SAM 3.1` can be downloaded from ModelScope in this setup, so Hugging Face access approval is not required on the default path.
+- `SAM 3` can be downloaded from ModelScope in this setup, so Hugging Face access approval is not required on the default path.
+- `SAM 3.1` remains available, but only for optional ablation runs.
 - `stable-diffusion-v1-5` and `Wan2.1-Fun-1.3B-InP` are large repositories, so make sure enough disk space is available before downloading.
 - The `ROSE` configs in this project point to a dedicated Python interpreter through `rose.python_bin`. The model files above are still downloaded into the shared model root.
 
@@ -236,10 +264,10 @@ Key files and folders:
   - pipeline implementation, wrappers, metrics, and utility code
 - [slurm_scripts/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts)
   - SLURM scripts for smoke tests, method runs, and evaluation
-- [outputs_ablation/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_ablation)
-  - `SAM 3` vs `SAM 3.1` smoke ablation results
-- [outputs_full/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full)
-  - final full-run outputs and summary tables
+- [outputs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results)
+  - the only formal output root, with `full/`, `ablation/`, and future `davis_full/`
+- `artifacts_debug/`
+  - non-final smoke checks, historical local runs, and archived SLURM logs
 - [plan/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/plan)
   - planning documents and execution specifications
 
@@ -280,6 +308,11 @@ The preferred HPC entry points are:
 
 - [slurm_scripts/run_part3_method.slurm](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts/run_part3_method.slurm)
 - [slurm_scripts/eval_part3_metrics.slurm](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts/eval_part3_metrics.slurm)
+
+For sequence-matrix runs:
+
+- Use [slurm_scripts/run_part3_sequence_matrix_debug.slurm](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts/run_part3_sequence_matrix_debug.slurm) for short `debug`-partition checks.
+- Use [slurm_scripts/run_part3_sequence_matrix.slurm](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts/run_part3_sequence_matrix.slurm) for full DAVIS and other longer runs.
 
 Example:
 
@@ -335,14 +368,16 @@ python evaluate_part3.py \
 
 Important output roots:
 
-- `outputs/`
-  - local smoke and intermediate runs
-- `outputs_ablation/`
-  - `SAM 3` vs `SAM 3.1` smoke ablation
-- `outputs_full/`
-  - final full experiments
+- `results/Wild_Video/`
+  - final full experiments and final summary tables
+- `results_debug/ablation/`
+  - optional `SAM 3` vs `SAM 3.1` smoke ablation
+- `results/DAVIS_Dataset/`
+  - reserved for the full-DAVIS rerun outputs
+- `artifacts_debug/`
+  - non-final smoke checks, archived local experiments, and SLURM job logs
 
-Inside `outputs_full/<variant>/`, the most important folders are:
+Inside `results/Wild_Video/<variant>/`, the most important folders are:
 
 - `videos/`
 - `masks/`
@@ -350,8 +385,8 @@ Inside `outputs_full/<variant>/`, the most important folders are:
 
 Final summary tables are stored in:
 
-- [outputs_full/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_full_summary.md)
-- [outputs_full/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/outputs_full/summary/part3_results_table.md)
+- [results/Wild_Video/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_full_summary.md)
+- [results/Wild_Video/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_results_table.md)
 
 Chinese versions are also provided in the same folder.
 
@@ -359,10 +394,10 @@ Chinese versions are also provided in the same folder.
 
 Summary of the final table:
 
-- Best DAVIS mask metrics: `sam3.1` variants
-- Best wild-video `PSNR`: `sam3_diffueraser_side_effect`
-- Best wild-video `SSIM`: `sam3_rose_side_effect`
-- Best balanced final recommendation: `sam3.1_rose_side_effect`
+- Mainline final recommendation: `sam3_rose_side_effect`
+- Best wild-video `PSNR` within the mainline: `sam3_diffueraser_side_effect`
+- Best wild-video `SSIM` within the mainline: `sam3_rose_side_effect`
+- `SAM 3.1` is retained only as an optional ablation path and is not part of the required default report
 
 Current final summary:
 
@@ -372,14 +407,11 @@ Current final summary:
 | sam3 | sam3_diffueraser_side_effect | 0.6953 | 0.8625 | **14.3236** | 0.2271 |
 | sam3 | sam3_rose_object | 0.6953 | 0.8625 | 14.2992 | 0.2294 |
 | sam3 | sam3_rose_side_effect | 0.6953 | 0.8625 | 14.3121 | **0.2303** |
-| sam3.1 | sam3_diffueraser_object | **0.6969** | **0.8750** | 14.3219 | 0.2270 |
-| sam3.1 | sam3_diffueraser_side_effect | **0.6969** | **0.8750** | 14.3231 | 0.2271 |
-| sam3.1 | sam3_rose_object | **0.6969** | **0.8750** | 14.3081 | 0.2302 |
-| sam3.1 | sam3_rose_side_effect | **0.6969** | **0.8750** | 14.3179 | 0.2302 |
 
 ## Notes
 
 - DAVIS metrics are identical across methods within the same variant because DAVIS evaluation reuses the same `object_mask` outputs.
 - `PSNR` is a pixel-wise reconstruction metric.
 - `SSIM` is a local structural similarity metric.
+- The default report and rerun path use `SAM 3` only. `SAM 3.1` is optional and should be treated as ablation material rather than a required submission item.
 - Some legacy smoke-check folders such as `wild_video1_short33_check` and `wild_video1_short33_chunked_check` are kept for debugging and validation history; they are not the final full-run results.
