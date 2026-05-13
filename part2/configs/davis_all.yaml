@@ -16,7 +16,7 @@ sam2:
 
 vggt4d:
   repo_dir: "external/VGGT4D"
-  checkpoint_dir: "weights"
+  checkpoint: "external/VGGT4D/ckpts/model_tracker_fixed_e20.pt"
   depth_conf_threshold: 0.1
   dilate_kernel: 21
   min_area: 300
