@@ -2,17 +2,17 @@
 
 现在的正式输出规则是：
 
-- 所有最终实验结果统一放在 `part3/outputs/`
+- 所有最终实验结果统一放在 `part3/results/`
 - 所有非最终 smoke 检查和归档日志统一放在 `part3/artifacts_debug/`
 
 当前布局如下：
 
-- `outputs/full/`
+- `results/Wild_Video/`
   - 报告中使用的最终完整实验结果
   - 包含 `sam3/`、`sam3_1/` 和 `summary/`
-- `outputs/ablation/`
+- `results_debug/ablation/`
   - `SAM 3` vs `SAM 3.1` 的 smoke 消融输出
-- `outputs/davis_full/`
+- `results/DAVIS_Dataset/`
   - 预留给未来的全 DAVIS 重跑结果
 - `artifacts_debug/checks/`
   - 类似 `wild_video1_short33_check` 这类短片 smoke 检查

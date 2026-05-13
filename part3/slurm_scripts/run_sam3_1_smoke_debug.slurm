@@ -10,19 +10,22 @@
 
 set -euo pipefail
 
-ROOT="/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3"
+PART3_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="$(cd "$PART3_ROOT/.." && pwd)"
+source "$REPO_ROOT/local_paths.sh"
+ROOT="$PART3_ROOT"
 cd "$ROOT"
 mkdir -p temp
-source /hpc2hdd/home/ckwong627/miniconda3/etc/profile.d/conda.sh
-conda activate cv2
+source "$CONDA_SH"
+conda activate "$PART3_CONDA_ENV"
 
-SHORT_VIDEO="$ROOT/outputs/smoke_inputs/Wild_Video1_short33.mp4"
+SHORT_VIDEO="$ROOT/results_debug/smoke_inputs/Wild_Video1_short33.mp4"
 if [[ ! -f "$SHORT_VIDEO" ]]; then
   python - <<'PY'
 import os
 import cv2
 video_path = "../data/Wild_Video/input_with_person/Wild_Video1.mp4"
-short_video = "outputs/smoke_inputs/Wild_Video1_short33.mp4"
+short_video = "results_debug/smoke_inputs/Wild_Video1_short33.mp4"
 os.makedirs(os.path.dirname(short_video), exist_ok=True)
 cap = cv2.VideoCapture(video_path)
 fps = cap.get(cv2.CAP_PROP_FPS) or 30.0

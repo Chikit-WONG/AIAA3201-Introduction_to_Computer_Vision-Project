@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate full Part 3 metrics into comparison tables."""
+"""Aggregate formal Part 3 metrics into comparison tables."""
 
 from __future__ import annotations
 
@@ -24,6 +24,19 @@ def average(records: list[dict], key: str) -> float | None:
     return sum(values) / len(values)
 
 
+def first_existing_dir(*candidates: str) -> str:
+    for path in candidates:
+        if os.path.isdir(path):
+            return path
+    return candidates[0]
+
+
+def format_metric(value: float | None, digits: int = 4) -> str:
+    if value is None:
+        return ""
+    return f"{value:.{digits}f}"
+
+
 def write_csv(path: str, fieldnames: list[str], rows: list[dict]) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as f:
@@ -45,14 +58,35 @@ def write_md(path: str, fieldnames: list[str], rows: list[dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--part3-root", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    parser.add_argument("--include-sam3-1", action="store_true")
     args = parser.parse_args()
 
     root = os.path.abspath(args.part3_root)
     variants = {
-        "sam3": os.path.join(root, "outputs", "full", "sam3", "metrics"),
-        "sam3.1": os.path.join(root, "outputs", "full", "sam3_1", "metrics"),
+        "sam3": {
+            "wild_metrics": first_existing_dir(
+                os.path.join(root, "results", "Wild_Video", "sam3", "metrics"),
+                os.path.join(root, "outputs", "full", "sam3", "metrics"),
+            ),
+            "davis_metrics": first_existing_dir(
+                os.path.join(root, "results", "DAVIS_Dataset", "sam3", "metrics"),
+                os.path.join(root, "outputs", "davis_full", "sam3", "metrics"),
+            ),
+        },
     }
+    if args.include_sam3_1:
+        variants["sam3.1"] = {
+            "wild_metrics": first_existing_dir(
+                os.path.join(root, "results", "Wild_Video", "sam3_1", "metrics"),
+                os.path.join(root, "outputs", "full", "sam3_1", "metrics"),
+            ),
+            "davis_metrics": first_existing_dir(
+                os.path.join(root, "results", "DAVIS_Dataset", "sam3_1", "metrics"),
+                os.path.join(root, "outputs", "davis_full", "sam3_1", "metrics"),
+            ),
+        }
     methods = [
+        "sam3_propainter",
         "sam3_diffueraser_object",
         "sam3_diffueraser_side_effect",
         "sam3_rose_object",
@@ -60,11 +94,15 @@ def main() -> None:
     ]
 
     rows = []
-    for variant, metrics_dir in variants.items():
+    for variant, metric_dirs in variants.items():
         for method in methods:
             tag = method
-            davis_records = load_json(os.path.join(metrics_dir, f"davis_mask_metrics__{tag}.json"))
-            wild_records = load_json(os.path.join(metrics_dir, f"wild_video_metrics__{tag}.json"))
+            davis_records = load_json(
+                os.path.join(metric_dirs["davis_metrics"], f"davis_mask_metrics__{tag}.json")
+            )
+            wild_records = load_json(
+                os.path.join(metric_dirs["wild_metrics"], f"wild_video_metrics__{tag}.json")
+            )
             rows.append(
                 {
                     "variant": variant,
@@ -88,11 +126,25 @@ def main() -> None:
         "avg_wild_PSNR",
         "avg_wild_SSIM",
     ]
-    output_dir = os.path.join(root, "outputs", "full", "summary")
+    output_dir = os.path.join(root, "results", "summary")
     write_csv(os.path.join(output_dir, "part3_full_summary.csv"), fieldnames, rows)
     write_md(os.path.join(output_dir, "part3_full_summary.md"), fieldnames, rows)
     with open(os.path.join(output_dir, "part3_full_summary.json"), "w", encoding="utf-8") as f:
         json.dump(rows, f, indent=2)
+
+    display_rows = [
+        {
+            "variant": row["variant"],
+            "method": row["method"],
+            "avg_davis_JM": format_metric(row["avg_davis_JM"]),
+            "avg_davis_JR": format_metric(row["avg_davis_JR"]),
+            "avg_wild_PSNR": format_metric(row["avg_wild_PSNR"]),
+            "avg_wild_SSIM": format_metric(row["avg_wild_SSIM"]),
+        }
+        for row in rows
+    ]
+    display_fields = ["variant", "method", "avg_davis_JM", "avg_davis_JR", "avg_wild_PSNR", "avg_wild_SSIM"]
+    write_md(os.path.join(output_dir, "part3_results_table.md"), display_fields, display_rows)
 
 
 if __name__ == "__main__":

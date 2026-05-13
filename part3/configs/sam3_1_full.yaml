@@ -1,7 +1,7 @@
 # Part 3 SAM 3.1 full-run configuration
 
 project_root: ".."
-output_root: "outputs/full/sam3_1"
+output_root: "results/Wild_Video/sam3_1"
 device: "cuda"
 gpu_id: 0
 
@@ -41,7 +41,7 @@ propainter:
   fp16: true
   neighbor_length: 10
   ref_stride: 10
-  subvideo_length: 80
+  subvideo_length: 16
 
 diffueraser:
   repo_dir: "external/repository/DiffuEraser"

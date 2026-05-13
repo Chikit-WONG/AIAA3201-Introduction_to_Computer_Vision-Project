@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--sequence", "-s", required=True)
     parser.add_argument("--input", "-i", required=True, help="Input video path.")
     parser.add_argument("--prompt", default=None)
+    parser.add_argument("--inpaint-prompt", default=None)
     parser.add_argument(
         "--init-mask",
         default=None,
@@ -49,7 +50,11 @@ def main():
     if prompt is None:
         prompt = config.get("davis", {}).get("prompts", {}).get(args.sequence)
         if prompt is None:
-            prompt = config.get("wild", {}).get("prompts", {}).get(args.sequence, "person")
+            prompt = config.get("wild", {}).get("prompts", {}).get(args.sequence, "")
+
+    inpaint_prompt = args.inpaint_prompt
+    if inpaint_prompt is None:
+        inpaint_prompt = config.get("rose", {}).get("prompts", {}).get(args.sequence)
 
     pipeline = Part3Pipeline(config, part3_dir=part3_dir)
     result = pipeline.run(
@@ -57,6 +62,7 @@ def main():
         sequence=args.sequence,
         input_video=os.path.abspath(args.input),
         prompt=prompt,
+        inpaint_prompt=inpaint_prompt,
         init_mask_path=os.path.abspath(args.init_mask) if args.init_mask else None,
         allow_existing_masks=args.allow_existing_masks,
         existing_mask_dir=args.existing_mask_dir,

@@ -24,6 +24,11 @@ part2/results_davis_full/
 part3/outputs/full/
 part3/outputs/ablation/
 part3/outputs/davis_full/
+part3/results/Wild_Video/
+part3/results/Sample_Data/
+part3/results/DAVIS_Dataset/
+part3/results/summary/
+part3/results_debug/
 !part3/outputs/README.md
 !part3/outputs/README-CN.md
 part3/artifacts_debug/*
@@ -38,3 +43,8 @@ part2/temp/
 # External repos and large model-adjacent assets inside the project tree
 part2/external/
 part3/external/
+
+
+!results_davis_summary/**
+
+logs/

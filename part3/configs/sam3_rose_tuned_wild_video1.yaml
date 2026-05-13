@@ -1,7 +1,7 @@
-# Part 3 SAM 3.1 variant configuration
+# Part 3 SAM 3 ROSE tuned configuration for Wild_Video1
 
 project_root: ".."
-output_root: "results/Wild_Video"
+output_root: "results/Wild_Video_tuned/sam3"
 device: "cuda"
 gpu_id: 0
 
@@ -28,20 +28,18 @@ wild:
 
 sam3:
   repo_dir: "external/repository/sam3"
-  version: "sam3.1"
-  checkpoint: "models/sam3.1"
+  version: "sam3"
+  checkpoint: "models/sam3"
   frame_index: 0
   compile: false
   async_loading_frames: false
-  use_fa3: false
-  use_rope_real: true
 
 propainter:
   repo_dir: "../part2/external/ProPainter"
   fp16: true
   neighbor_length: 10
   ref_stride: 10
-  subvideo_length: 80
+  subvideo_length: 16
 
 diffueraser:
   repo_dir: "external/repository/DiffuEraser"
@@ -59,9 +57,12 @@ diffueraser:
 rose:
   repo_dir: "external/repository/ROSE"
   video_length: 17
-  sample_size: [480, 720]
+  sample_size: [720, 1280]
   model_root: "models/Wan2.1-Fun-1.3B-InP"
   transformer_root: "models/ROSE_transformer"
+  python_bin: "../../../../../../venvs/rosepart3/bin/python"
+  prompts:
+    Wild_Video1: "clean outdoor urban scene, realistic road and background, no person, no human, natural background consistency"
 
 side_effect:
   enable: true

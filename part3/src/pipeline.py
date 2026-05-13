@@ -6,7 +6,7 @@ import os
 import shutil
 from pathlib import Path
 
-from .io_utils import ensure_dir, resolve_path, slugify
+from .io_utils import ensure_dir, part3_method_output_slug, resolve_path, sam3_variant_slug, slugify
 from .mask_utils import mask_dir_to_video
 from .side_effect_mask import build_side_effect_masks_for_dir
 from .video_utils import extract_video_frames, frames_to_video, get_video_info
@@ -17,6 +17,9 @@ class Part3Pipeline:
         self.config = config
         self.part3_dir = os.path.abspath(part3_dir)
         self.output_root = ensure_dir(resolve_path(self.part3_dir, config.get("output_root", "outputs")))
+
+    def _sam3_artifact_prefix(self) -> str:
+        return sam3_variant_slug(self.config.get("sam3", {}).get("version", "sam3"))
 
     def _sam3_generator(self) -> SAM3MaskGenerator:
         from .sam3_wrapper import SAM3MaskGenerator
@@ -73,32 +76,33 @@ class Part3Pipeline:
         sequence: str,
         input_video: str,
         prompt: str | None,
+        inpaint_prompt: str | None = None,
         init_mask_path: str | None = None,
         allow_existing_masks: bool = False,
         existing_mask_dir: str | None = None,
     ) -> dict:
         sequence_slug = slugify(sequence)
-        method_slug = slugify(method)
+        method_slug = part3_method_output_slug(method, self.config.get("sam3", {}).get("version"))
         input_stem_slug = slugify(Path(input_video).stem)
 
         masks_root = ensure_dir(os.path.join(self.output_root, "masks", sequence_slug, method_slug))
         videos_root = ensure_dir(os.path.join(self.output_root, "videos", sequence_slug, method_slug))
         logs_root = ensure_dir(os.path.join(self.output_root, "logs", sequence_slug, method_slug))
         frames_root = ensure_dir(os.path.join(self.output_root, "frames", sequence_slug, input_stem_slug))
-        if not os.listdir(frames_root):
-            extract_video_frames(input_video, frames_root)
+        self._ensure_fresh_frame_cache(input_video, frames_root)
 
         object_mask_dir = os.path.join(masks_root, "object_mask")
         if existing_mask_dir:
-            object_mask_dir = os.path.abspath(existing_mask_dir)
+            object_mask_dir = self._ensure_mask_alias(os.path.abspath(existing_mask_dir), object_mask_dir)
         elif "sam3" in method:
+            artifact_prefix = self._sam3_artifact_prefix()
             sam3_output = self._sam3_generator().generate_video_masks(
                 input_video=input_video,
                 output_mask_dir=ensure_dir(object_mask_dir),
                 prompt=prompt,
                 init_mask_path=init_mask_path,
-                output_overlay_video=os.path.join(videos_root, "sam3_overlay.mp4"),
-                output_mask_video=os.path.join(videos_root, "sam3_mask.mp4"),
+                output_overlay_video=os.path.join(videos_root, f"{artifact_prefix}_overlay.mp4"),
+                output_mask_video=os.path.join(videos_root, f"{artifact_prefix}_mask.mp4"),
             )
             object_mask_dir = sam3_output["mask_dir"]
         elif not allow_existing_masks:
@@ -144,7 +148,7 @@ class Part3Pipeline:
                 input_video=input_video,
                 mask_video_or_dir=final_mask_dir,
                 output_dir=videos_root,
-                prompt=prompt,
+                prompt=inpaint_prompt or prompt or "",
                 video_length=self.config["rose"].get("video_length", 17),
                 sample_size=tuple(self.config["rose"].get("sample_size", [480, 720])),
             )
@@ -166,3 +170,43 @@ class Part3Pipeline:
             "videos_root": videos_root,
             "logs_root": logs_root,
         }
+
+    @staticmethod
+    def _ensure_fresh_frame_cache(input_video: str, frames_root: str) -> None:
+        expected_frame_count = get_video_info(input_video)["frame_count"]
+        cached_frame_paths = sorted(
+            str(path)
+            for path in Path(frames_root).glob("*.jpg")
+        ) + sorted(
+            str(path)
+            for path in Path(frames_root).glob("*.png")
+        )
+        if len(cached_frame_paths) == expected_frame_count and expected_frame_count > 0:
+            return
+        if os.path.isdir(frames_root):
+            shutil.rmtree(frames_root)
+        ensure_dir(frames_root)
+        extract_video_frames(input_video, frames_root)
+
+    @staticmethod
+    def _ensure_mask_alias(source_dir: str, target_dir: str) -> str:
+        source_dir = os.path.abspath(source_dir)
+        target_dir = os.path.abspath(target_dir)
+        if os.path.islink(target_dir):
+            if os.path.realpath(target_dir) == os.path.realpath(source_dir):
+                return target_dir
+            os.unlink(target_dir)
+        elif os.path.isdir(target_dir):
+            if os.path.realpath(target_dir) == os.path.realpath(source_dir):
+                return target_dir
+            raise FileExistsError(
+                f"Target already exists and is not the expected object-mask alias: {target_dir}"
+            )
+        elif os.path.exists(target_dir):
+            raise FileExistsError(
+                f"Target exists and is not a directory alias: {target_dir}"
+            )
+
+        ensure_dir(os.path.dirname(target_dir))
+        os.symlink(source_dir, target_dir, target_is_directory=True)
+        return target_dir

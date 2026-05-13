@@ -10,15 +10,18 @@
 
 set -euo pipefail
 
-ROOT="/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3"
+PART3_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="$(cd "$PART3_ROOT/.." && pwd)"
+source "$REPO_ROOT/local_paths.sh"
+ROOT="$PART3_ROOT"
 cd "$ROOT"
 mkdir -p temp
-source /hpc2hdd/home/ckwong627/miniconda3/etc/profile.d/conda.sh
-conda activate cv2
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+source "$CONDA_SH"
+conda activate "$PART3_CONDA_ENV"
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-$PYTORCH_CUDA_ALLOC_CONF_DEFAULT}"
 
-SHORT_VIDEO="$ROOT/outputs/smoke_inputs/Wild_Video1_short33.mp4"
-MASK_DIR="$ROOT/outputs/smoke_masks/Wild_Video1_short33_blank"
+SHORT_VIDEO="$ROOT/results_debug/smoke_inputs/Wild_Video1_short33.mp4"
+MASK_DIR="$ROOT/results_debug/smoke_masks/Wild_Video1_short33_blank"
 mkdir -p "$(dirname "$SHORT_VIDEO")" "$MASK_DIR"
 
 python - <<'PY'
@@ -27,8 +30,8 @@ import cv2
 import numpy as np
 
 video_path = "../data/Wild_Video/input_with_person/Wild_Video1.mp4"
-short_video = "outputs/smoke_inputs/Wild_Video1_short33.mp4"
-mask_dir = "outputs/smoke_masks/Wild_Video1_short33_blank"
+short_video = "results_debug/smoke_inputs/Wild_Video1_short33.mp4"
+mask_dir = "results_debug/smoke_masks/Wild_Video1_short33_blank"
 os.makedirs(mask_dir, exist_ok=True)
 cap = cv2.VideoCapture(video_path)
 fps = cap.get(cv2.CAP_PROP_FPS) or 30.0

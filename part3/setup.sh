@@ -5,6 +5,7 @@
 # This script assumes the Part 3 Python environment is already activated.
 # Usage:
 #   bash setup.sh
+#   bash setup.sh --include-sam3-1
 #   bash setup.sh --source hf
 #   bash setup.sh --source auto
 # ============================================================
@@ -15,6 +16,7 @@ REPO_DIR="$SCRIPT_DIR/external/repository"
 MODEL_ROOT="$SCRIPT_DIR/models"
 PART2_PROPainter_DIR="$SCRIPT_DIR/../part2/external/ProPainter"
 SOURCE="modelscope"
+INCLUDE_SAM3_1=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -22,9 +24,13 @@ while [[ $# -gt 0 ]]; do
       SOURCE="${2:-}"
       shift 2
       ;;
+    --include-sam3-1)
+      INCLUDE_SAM3_1=1
+      shift
+      ;;
     *)
       echo "[ERROR] Unknown argument: $1"
-      echo "Usage: bash setup.sh [--source modelscope|hf|auto]"
+      echo "Usage: bash setup.sh [--source modelscope|hf|auto] [--include-sam3-1]"
       exit 1
       ;;
   esac
@@ -62,6 +68,16 @@ PY
     echo "[+] Installing Python package: $pip_name"
     env LD_LIBRARY_PATH="" pip install "$pip_name"
   fi
+}
+
+install_requirements_file() {
+  local requirements_file="$1"
+  if [[ ! -f "$requirements_file" ]]; then
+    echo "[!] Requirements file not found, skipping: $requirements_file"
+    return
+  fi
+  echo "[+] Installing Python requirements from: $requirements_file"
+  env LD_LIBRARY_PATH="" pip install -r "$requirements_file"
 }
 
 hf_download() {
@@ -148,6 +164,8 @@ echo "============================================"
 
 ensure_python_pkg "modelscope" "modelscope"
 ensure_python_pkg "huggingface_hub" "huggingface_hub"
+install_requirements_file "$SCRIPT_DIR/requirements_part3.txt"
+install_requirements_file "$REPO_DIR/DiffuEraser/requirements.txt"
 
 echo
 echo "============================================"
@@ -156,8 +174,14 @@ echo "============================================"
 echo "Preferred source: $SOURCE"
 
 download_with_preference "SAM 3" "$MODEL_ROOT/sam3" "facebook/sam3" "facebook/sam3"
-download_with_preference "SAM 3.1" "$MODEL_ROOT/sam3.1" "facebook/sam3.1" "facebook/sam3.1"
+if [[ "$INCLUDE_SAM3_1" == "1" ]]; then
+  download_with_preference "SAM 3.1" "$MODEL_ROOT/sam3.1" "facebook/sam3.1" "facebook/sam3.1"
+else
+  mkdir -p "$MODEL_ROOT/sam3.1"
+  echo "[=] Skipping SAM 3.1 by default. Use --include-sam3-1 if you need the optional ablation path."
+fi
 download_with_preference "DiffuEraser" "$MODEL_ROOT/diffuEraser" "xingzi/diffuEraser" "lixiaowen/diffuEraser"
+download_with_preference "PCM Weights" "$MODEL_ROOT/PCM_Weights" "" "wangfuyun/PCM_Weights"
 download_with_preference "sd-vae-ft-mse" "$MODEL_ROOT/sd-vae-ft-mse" "" "stabilityai/sd-vae-ft-mse"
 download_with_preference "stable-diffusion-v1-5" "$MODEL_ROOT/stable-diffusion-v1-5" "AI-ModelScope/stable-diffusion-v1-5" "stable-diffusion-v1-5/stable-diffusion-v1-5"
 download_with_preference "Wan2.1-Fun-1.3B-InP" "$MODEL_ROOT/Wan2.1-Fun-1.3B-InP" "PAI/Wan2.1-Fun-1.3B-InP" "alibaba-pai/Wan2.1-Fun-1.3B-InP"
@@ -176,8 +200,7 @@ echo "Model root:"
 echo "  $MODEL_ROOT"
 echo
 echo "Notes:"
-echo "  - Default behavior prefers ModelScope, but will fall back to Hugging Face"
+echo "  - Default behavior prepares the SAM 3 mainline only."
+echo "  - Use --include-sam3-1 if you want the optional SAM 3.1 ablation path."
+echo "  - Model downloads prefer ModelScope, but fall back to Hugging Face"
 echo "    for weights without a confirmed ModelScope mirror in this project."
-echo "  - SAM 3 and SAM 3.1 can be downloaded from ModelScope in this setup,"
-echo "    so Hugging Face access approval is not required if you stay on the"
-echo "    default ModelScope path."

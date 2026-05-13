@@ -9,11 +9,14 @@
 
 set -euo pipefail
 
-ROOT="/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3"
+PART3_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="$(cd "$PART3_ROOT/.." && pwd)"
+source "$REPO_ROOT/local_paths.sh"
+ROOT="$PART3_ROOT"
 cd "$ROOT"
 mkdir -p temp
-source /hpc2hdd/home/ckwong627/miniconda3/etc/profile.d/conda.sh
-conda activate cv2
+source "$CONDA_SH"
+conda activate "$PART3_CONDA_ENV"
 
 : "${CONFIG:?CONFIG is required}"
 : "${METHOD:?METHOD is required}"

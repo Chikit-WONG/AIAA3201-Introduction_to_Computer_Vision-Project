@@ -7,14 +7,14 @@ import argparse
 import os
 from glob import glob
 
-from src.io_utils import load_yaml, slugify
+from src.io_utils import load_yaml, part3_method_output_slug, slugify
 from src.metrics_mask import evaluate_mask_sequence
 from src.metrics_video import evaluate_video_quality
 from src.report_tables import save_records_csv, save_records_json
 
 
-def resolve_pred_video(output_root: str, sequence: str, method: str) -> str:
-    video_dir = os.path.join(output_root, "videos", slugify(sequence), slugify(method))
+def resolve_pred_video(output_root: str, sequence: str, method: str, sam3_version: str | None = None) -> str:
+    video_dir = os.path.join(output_root, "videos", slugify(sequence), part3_method_output_slug(method, sam3_version))
     preferred = [
         os.path.join(video_dir, "output.mp4"),
         os.path.join(video_dir, "diffueraser_result.mp4"),
@@ -68,7 +68,7 @@ def main():
                 output_root,
                 "masks",
                 slugify(seq),
-                slugify(args.method),
+                part3_method_output_slug(args.method, config.get("sam3", {}).get("version")),
                 "object_mask",
             )
             gt_mask_dir = os.path.join(part3_dir, config["davis"]["root"], "Annotations", config["davis"]["resolution"], seq)
@@ -82,7 +82,7 @@ def main():
         sequences = args.sequence or list(config["wild"]["pairs"].keys())
         wild_records = []
         for seq in sequences:
-            pred_video = resolve_pred_video(output_root, seq, args.method)
+            pred_video = resolve_pred_video(output_root, seq, args.method, config.get("sam3", {}).get("version"))
             gt_name = config["wild"]["pairs"][seq]
             gt_video = os.path.join(part3_dir, config["wild"]["clean_gt_dir"], f"{gt_name}.mp4")
             align = config["wild"].get("align_for_metrics", True) and not args.no_align

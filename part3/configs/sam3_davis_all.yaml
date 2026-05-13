@@ -1,7 +1,7 @@
 # Part 3 full DAVIS rerun configuration for SAM 3
 
 project_root: ".."
-output_root: "outputs/davis_full/sam3"
+output_root: "results/DAVIS_Dataset/sam3"
 device: "cuda"
 gpu_id: 0
 
@@ -37,7 +37,7 @@ propainter:
   fp16: true
   neighbor_length: 10
   ref_stride: 10
-  subvideo_length: 80
+  subvideo_length: 16
 
 diffueraser:
   repo_dir: "external/repository/DiffuEraser"
