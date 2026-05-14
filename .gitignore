@@ -35,7 +35,7 @@ part3/results_debug/
 !part3/outputs/README-CN.md
 part3/artifacts_debug/*
 !part3/artifacts_debug/README.md
-results_davis_summary/
+# results_davis_summary/
 
 # Generated DAVIS videos and temp caches
 part3/inputs/davis_videos/
@@ -50,3 +50,5 @@ part3/external/
 !results_davis_summary/**
 
 logs/
+
+plan/
