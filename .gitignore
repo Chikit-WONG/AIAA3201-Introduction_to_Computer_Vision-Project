@@ -4,6 +4,8 @@
 __pycache__/
 data/
 results/
+outputs_davis_full/
+outputs/
 results_no_temporal/
 external/
 no_git/
