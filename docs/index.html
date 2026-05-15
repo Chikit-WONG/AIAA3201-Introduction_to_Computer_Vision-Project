@@ -422,7 +422,7 @@
       <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
       <div class="video-grid-2">
         <div class="video-card v-p1">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part1_bmx_trees.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -432,7 +432,7 @@
           </div>
         </div>
         <div class="video-card v-p2">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part2_bmx_trees.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -446,7 +446,7 @@
       <div class="video-subheading">Part 3 — SAM 3 Variants (5 methods)</div>
       <div class="video-grid-3">
         <div class="video-card v-p3">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part3_bmx_propainter.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -456,7 +456,7 @@
           </div>
         </div>
         <div class="video-card v-p3">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part3_bmx_diffueraser.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -466,7 +466,7 @@
           </div>
         </div>
         <div class="video-card v-p3">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part3_bmx_diffueraser_se.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -476,7 +476,7 @@
           </div>
         </div>
         <div class="video-card v-p3">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part3_bmx_rose.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -486,7 +486,7 @@
           </div>
         </div>
         <div class="video-card v-p3">
-          <video autoplay loop muted playsinline preload="metadata">
+          <video loop muted playsinline preload="auto">
             <source src="assets/videos/part3_bmx_rose_se.mp4" type="video/mp4" />
           </video>
           <div class="video-label">
@@ -573,36 +573,6 @@
       </div>
     </div>
   </section>
-
-  <script>
-    (function () {
-      const btns = document.querySelectorAll('.tab-btn');
-      const panels = document.querySelectorAll('.tab-panel');
-
-      btns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = btn.dataset.tab;
-
-          // pause all videos in current active panel
-          document.querySelector('.tab-panel.active')
-            .querySelectorAll('video').forEach(v => v.pause());
-
-          btns.forEach(b => b.classList.remove('active'));
-          panels.forEach(p => p.classList.remove('active'));
-
-          btn.classList.add('active');
-          const panel = document.getElementById('tab-' + target);
-          panel.classList.add('active');
-
-          // play all videos in newly active panel
-          panel.querySelectorAll('video').forEach(v => {
-            v.load();
-            v.play().catch(() => {});
-          });
-        });
-      });
-    })();
-  </script>
 
   <!-- ╔═══════════════════════════ QUALITATIVE ══════════════════════════════╗ -->
   <section>
@@ -785,5 +755,48 @@
   </p>
 </footer>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var btns   = Array.from(document.querySelectorAll('.tab-btn'));
+  var panels = Array.from(document.querySelectorAll('.tab-panel'));
+
+  function playPanel(panel) {
+    panel.querySelectorAll('video').forEach(function (v) {
+      v.play().catch(function () {});
+    });
+  }
+
+  function pausePanel(panel) {
+    panel.querySelectorAll('video').forEach(function (v) { v.pause(); });
+  }
+
+  // play videos in the default active tab on load
+  var defaultPanel = document.querySelector('.tab-panel.active');
+  if (defaultPanel) { playPanel(defaultPanel); }
+
+  btns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = btn.getAttribute('data-tab');
+
+      // pause current active panel
+      var current = document.querySelector('.tab-panel.active');
+      if (current) { pausePanel(current); }
+
+      // deactivate all
+      btns.forEach(function (b) { b.classList.remove('active'); });
+      panels.forEach(function (p) { p.classList.remove('active'); });
+
+      // activate clicked tab
+      btn.classList.add('active');
+      var next = document.getElementById('tab-' + target);
+      if (next) {
+        next.classList.add('active');
+        playPanel(next);
+      }
+    });
+  });
+});
+</script>
 </body>
 </html>
