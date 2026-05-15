@@ -10,12 +10,6 @@ The project follows the course requirement that all three parts are mandatory:
 | Part 2 | SOTA reproduction | SAM 2 or VGGT4D masks with ProPainter video inpainting |
 | Part 3 | Optimization and extension | SAM 3 masks with ProPainter, DiffuEraser, and ROSE backends, plus side-effect masks for shadows and boundary artifacts |
 
-The report is written with the CVPR LaTeX template and is located in:
-
-```text
-report/Video-Object-Removal-and-Inpainting-From-Hand-Crafted-Baselines-to-Foundation-Model-Pipelines/
-```
-
 ## Highlights
 
 ![Pipeline overview](docs/assets/pipeline_flowchart_v2.png)
