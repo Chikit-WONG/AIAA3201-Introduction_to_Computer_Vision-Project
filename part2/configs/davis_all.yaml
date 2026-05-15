@@ -1,0 +1,30 @@
+method: "sam2"
+gpu_id: 0
+output_root: "results/results_davis_full"
+
+davis:
+  root: "../data/DAVIS"
+  resolution: "480p"
+  sequences: []
+
+sam2:
+  repo_dir: "external/sam2"
+  checkpoint: "external/sam2/checkpoints/sam2.1_hiera_large.pt"
+  model_cfg: "configs/sam2.1/sam2.1_hiera_l.yaml"
+  frame_index: 0
+  multimask_output: false
+
+vggt4d:
+  repo_dir: "external/VGGT4D"
+  checkpoint: "external/VGGT4D/ckpts/model_tracker_fixed_e20.pt"
+  depth_conf_threshold: 0.1
+  dilate_kernel: 21
+  min_area: 300
+
+propainter:
+  repo_dir: "external/ProPainter"
+  weights_dir: "external/ProPainter/weights"
+  fp16: true
+  neighbor_length: 10
+  ref_stride: 10
+  subvideo_length: 80
