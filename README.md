@@ -1,5 +1,7 @@
 # AIAA3201 Project: Video Object Removal and Inpainting
 
+Project page: https://chikit-wong.github.io/AIAA3201-Introduction_to_Computer_Vision-Project/
+
 This repository contains the AIAA3201 final project for **Project 3: Video Object Removal & Inpainting**. The goal is to automatically identify dynamic foreground objects in a video, remove them, and restore the missing background using temporal information and video inpainting.
 
 The project follows the course requirement that all three parts are mandatory:
