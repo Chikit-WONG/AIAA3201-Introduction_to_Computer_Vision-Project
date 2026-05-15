@@ -555,13 +555,19 @@
             <td class="method-col">Spatial only</td>
             <td>YOLOv8-Seg + OF</td>
             <td>cv2.inpaint</td>
-            <td>0.3804</td><td>0.2063</td><td>—</td><td>—</td>
+            <td>0.3804</td><td>0.2063</td><td>13.69</td><td>0.1749</td>
+          </tr>
+          <tr>
+            <td class="method-col">Temporal, no align</td>
+            <td>YOLOv8-Seg + OF</td>
+            <td>Temporal + cv2.inpaint</td>
+            <td>0.3804</td><td>0.2063</td><td>13.66</td><td>0.1736</td>
           </tr>
           <tr>
             <td class="method-col">Temporal + Flow Align</td>
             <td>YOLOv8-Seg + OF</td>
-            <td>Temporal + cv2.inpaint</td>
-            <td>0.3804</td><td>0.2063</td><td>—</td><td>—</td>
+            <td>Temporal + flow-aligned cv2.inpaint</td>
+            <td>0.3804</td><td>0.2063</td><td>13.66</td><td>0.1737</td>
           </tr>
 
           <tr class="section-header"><td colspan="7">Part 2 — AI-Driven (DAVIS mandatory sequences)</td></tr>
@@ -569,13 +575,13 @@
             <td class="method-col">VGGT4D + ProPainter</td>
             <td>VGGT4D</td>
             <td>ProPainter</td>
-            <td>0.0330</td><td>0.0000</td><td>—</td><td>—</td>
+            <td>0.0330</td><td>0.0000</td><td>12.98</td><td>0.2057</td>
           </tr>
           <tr>
             <td class="method-col">SAM 2 + ProPainter</td>
             <td>SAM 2</td>
             <td>ProPainter</td>
-            <td>0.8383</td><td>0.9750</td><td>—</td><td>—</td>
+            <td>0.8383</td><td>0.9750</td><td>14.40</td><td>0.2002</td>
           </tr>
 
           <tr class="section-header"><td colspan="7">Part 3 — SAM 3 (all 90 DAVIS sequences + Wild Video)</td></tr>
@@ -614,7 +620,8 @@
     </div>
     <p style="margin-top:12px; font-size:0.82rem; color:var(--muted);">
       JM/JR for Part 3 rows are identical because DAVIS evaluation reuses the same SAM 3 masks across all inpainting backends.
-      Wild PSNR/SSIM for Parts 1 and 2 are not reported (different dataset configurations).
+      Wild PSNR/SSIM values are averaged over Wild_Video1 and Wild_Video2 against paired clean no-person references.
+      <strong class="best">Bold</strong> = best value in column.
     </p>
 
     <div class="figure-box" style="margin-top:24px;">
