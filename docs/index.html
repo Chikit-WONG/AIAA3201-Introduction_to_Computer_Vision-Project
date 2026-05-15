@@ -226,14 +226,37 @@
     }
     footer a { color: rgba(255,255,255,0.75); }
 
+    /* ── Video tabs ── */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 7px 18px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .tab-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .tab-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     /* ── Video grid ── */
     .video-subheading {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      margin: 28px 0 12px;
+      margin: 24px 0 12px;
       padding-bottom: 6px;
       border-bottom: 1px solid var(--border);
     }
@@ -248,25 +271,15 @@
       gap: 20px;
       justify-content: center;
     }
-    .video-grid-3 .video-card {
-      flex: 0 0 calc(33.33% - 14px);
-      min-width: 220px;
-    }
+    .video-grid-3 .video-card { flex: 0 0 calc(33.33% - 14px); min-width: 220px; }
     .video-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
     }
-    .video-card video {
-      width: 100%;
-      display: block;
-      background: #000;
-    }
-    .video-label {
-      padding: 10px 14px;
-      border-top: 1px solid var(--border);
-    }
+    .video-card video { width: 100%; display: block; background: #000; }
+    .video-label { padding: 10px 14px; border-top: 1px solid var(--border); }
     .video-label .vlabel-badge {
       display: inline-block;
       font-size: 0.68rem;
@@ -393,97 +406,203 @@
 
   <!-- ╔════════════════════════════ VIDEO RESULTS ═══════════════════════════╗ -->
   <section>
-    <h2>Video Results — bmx-trees</h2>
+    <h2>Video Results</h2>
     <p>
-      Output videos on the <strong>bmx-trees</strong> DAVIS sequence across all three parts and inpainting backends.
-      Videos auto-play looped and muted.
+      Output videos across three sequences. Switch tabs to compare; videos auto-play looped and muted within the active tab.
     </p>
 
-    <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
-    <div class="video-grid-2">
-      <div class="video-card v-p1">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part1_bmx_trees.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 1</span>
-          <strong>YOLOv8-Seg + Temporal Flow Align</strong>
-          <span>Hand-crafted baseline &nbsp;·&nbsp; masked PSNR 16.84 dB</span>
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="bmx">bmx-trees (DAVIS)</button>
+      <button class="tab-btn" data-tab="tennis">tennis (DAVIS)</button>
+      <button class="tab-btn" data-tab="wild2">Wild Video 2</button>
+    </div>
+
+    <!-- ── bmx-trees ── -->
+    <div id="tab-bmx" class="tab-panel active">
+      <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
+      <div class="video-grid-2">
+        <div class="video-card v-p1">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part1_bmx_trees.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 1</span>
+            <strong>YOLOv8-Seg + Temporal Flow Align</strong>
+            <span>Hand-crafted baseline &nbsp;·&nbsp; masked PSNR 16.84 dB</span>
+          </div>
+        </div>
+        <div class="video-card v-p2">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part2_bmx_trees.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 2</span>
+            <strong>SAM 2 + ProPainter</strong>
+            <span>AI-driven pipeline &nbsp;·&nbsp; JM 0.7412, JR 0.9500</span>
+          </div>
         </div>
       </div>
-      <div class="video-card v-p2">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part2_bmx_trees.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 2</span>
-          <strong>SAM 2 + ProPainter</strong>
-          <span>AI-driven pipeline &nbsp;·&nbsp; JM 0.7412, JR 0.9500</span>
+
+      <div class="video-subheading">Part 3 — SAM 3 Variants (5 methods)</div>
+      <div class="video-grid-3">
+        <div class="video-card v-p3">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part3_bmx_propainter.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ProPainter</strong>
+            <span>Propagation-based baseline</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part3_bmx_diffueraser.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser</strong>
+            <span>Diffusion backend &nbsp;·&nbsp; best wild PSNR</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part3_bmx_diffueraser_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser-SE</strong>
+            <span>Diffusion + side-effect mask</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part3_bmx_rose.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE</strong>
+            <span>Transformer inpainting</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video autoplay loop muted playsinline preload="metadata">
+            <source src="assets/videos/part3_bmx_rose_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE-SE</strong>
+            <span>Transformer + side-effect mask &nbsp;·&nbsp; best wild SSIM</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="video-subheading">Part 3 — SAM 3 Variants (5 methods)</div>
-    <div class="video-grid-3">
-      <div class="video-card v-p3">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part3_bmx_propainter.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 3</span>
-          <strong>SAM 3 + ProPainter</strong>
-          <span>Propagation-based baseline</span>
+    <!-- ── tennis ── -->
+    <div id="tab-tennis" class="tab-panel">
+      <div class="video-grid-3">
+        <div class="video-card v-p1">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part1_tennis.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 1</span>
+            <strong>YOLOv8-Seg + Temporal Flow Align</strong>
+            <span>Hand-crafted baseline</span>
+          </div>
+        </div>
+        <div class="video-card v-p2">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part2_tennis.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 2</span>
+            <strong>SAM 2 + ProPainter</strong>
+            <span>AI-driven pipeline &nbsp;·&nbsp; JM 0.9354, JR 1.0000</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part3_tennis_rose_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE-SE</strong>
+            <span>Best overall SSIM &nbsp;·&nbsp; side-effect mask</span>
+          </div>
         </div>
       </div>
-      <div class="video-card v-p3">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part3_bmx_diffueraser.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 3</span>
-          <strong>SAM 3 + DiffuEraser</strong>
-          <span>Diffusion backend &nbsp;·&nbsp; best wild PSNR</span>
+    </div>
+
+    <!-- ── Wild Video 2 ── -->
+    <div id="tab-wild2" class="tab-panel">
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">
+        Real-world clip with no ground-truth annotations. Evaluated against a paired clean no-person reference video.
+      </p>
+      <div class="video-grid-3">
+        <div class="video-card v-p1">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part1.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 1</span>
+            <strong>YOLOv8-Seg + Temporal Flow Align</strong>
+            <span>PSNR 13.66 &nbsp;·&nbsp; SSIM 0.1737</span>
+          </div>
         </div>
-      </div>
-      <div class="video-card v-p3">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part3_bmx_diffueraser_se.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 3</span>
-          <strong>SAM 3 + DiffuEraser-SE</strong>
-          <span>Diffusion + side-effect mask</span>
+        <div class="video-card v-p2">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part2_sam2.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 2</span>
+            <strong>SAM 2 + ProPainter</strong>
+            <span>PSNR 14.40 &nbsp;·&nbsp; SSIM 0.2002</span>
+          </div>
         </div>
-      </div>
-      <div class="video-card v-p3">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part3_bmx_rose.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 3</span>
-          <strong>SAM 3 + ROSE</strong>
-          <span>Transformer inpainting</span>
-        </div>
-      </div>
-      <div class="video-card v-p3">
-        <video autoplay loop muted playsinline preload="metadata">
-          <source src="assets/videos/part3_bmx_rose_se.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-label">
-          <span class="vlabel-badge">PART 3</span>
-          <strong>SAM 3 + ROSE-SE</strong>
-          <span>Transformer + side-effect mask &nbsp;·&nbsp; best wild SSIM</span>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part3_rose_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE-SE</strong>
+            <span>PSNR 14.43 &nbsp;·&nbsp; SSIM 0.2323 (best SSIM)</span>
+          </div>
         </div>
       </div>
     </div>
   </section>
+
+  <script>
+    (function () {
+      const btns = document.querySelectorAll('.tab-btn');
+      const panels = document.querySelectorAll('.tab-panel');
+
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.tab;
+
+          // pause all videos in current active panel
+          document.querySelector('.tab-panel.active')
+            .querySelectorAll('video').forEach(v => v.pause());
+
+          btns.forEach(b => b.classList.remove('active'));
+          panels.forEach(p => p.classList.remove('active'));
+
+          btn.classList.add('active');
+          const panel = document.getElementById('tab-' + target);
+          panel.classList.add('active');
+
+          // play all videos in newly active panel
+          panel.querySelectorAll('video').forEach(v => {
+            v.load();
+            v.play().catch(() => {});
+          });
+        });
+      });
+    })();
+  </script>
 
   <!-- ╔═══════════════════════════ QUALITATIVE ══════════════════════════════╗ -->
   <section>
