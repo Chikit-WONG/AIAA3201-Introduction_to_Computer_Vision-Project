@@ -3,8 +3,8 @@
 #SBATCH -o temp/vggt4d_wild_output.txt
 #SBATCH -e temp/vggt4d_wild_err.txt
 #SBATCH -n 1
-#SBATCH --gres=gpu:1
-#SBATCH --time=01:00:00
+#SBATCH --gres=gpu:a40:1
+#SBATCH --time=02:00:00
 #SBATCH -J p2_vg4d_wild
 
 PART2_ROOT="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
@@ -13,19 +13,17 @@ source "$REPO_ROOT/local_paths.sh"
 cd "$PART2_ROOT"
 
 source "$CONDA_SH"
-conda activate "$PART2_CONDA_ENV"
 module load "$CUDA_MODULE_NAME"
 
 echo "Job started at $(date)"
 echo "Node: $(hostname)"
 echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
 
-python run.py \
-    --method vggt4d \
-    --gpu 0 \
-    --davis-root ../data/Wild_Video_DAVIS \
-    --sequences ride1 ride2 ride3 run1 run2 run3 \
-    --output results/wild_vggt4d
+conda activate "$PART1_CONDA_ENV"
+python prepare_wild_video.py --video-dir ../data/Wild_Video/input_with_person --output-root ../data/Wild_Video_DAVIS
+conda deactivate
+conda activate "$PART2_CONDA_ENV"
+python run.py --method vggt4d --gpu 0 --davis-root ../data/Wild_Video_DAVIS --sequences Wild_Video1 Wild_Video2 --output results/results_wild_video/vggt4d
 
 echo "Job ended at $(date)"
 conda deactivate

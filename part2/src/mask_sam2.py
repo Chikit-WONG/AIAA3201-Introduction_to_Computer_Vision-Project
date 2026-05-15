@@ -6,6 +6,7 @@ derived from first-frame ground truth annotations.
 """
 
 import os
+import sys
 import glob
 from pathlib import Path
 
@@ -23,6 +24,9 @@ class SAM2MaskExtractor:
         self.project_root = Path(__file__).resolve().parents[1]
 
         sam2_cfg = config["sam2"]
+        repo_dir = self._resolve_project_path(sam2_cfg["repo_dir"])
+        if str(repo_dir) not in sys.path:
+            sys.path.insert(0, str(repo_dir))
         checkpoint = self._resolve_project_path(sam2_cfg["checkpoint"])
         model_cfg = sam2_cfg["model_cfg"]
 

@@ -80,7 +80,7 @@ cat temp/sam2_err.txt
 
 ### Running on Wild Video
 
-Wild Video is self-recorded footage (6 clips: ride1-3, run1-3). Since it has no ground-truth annotations, a pre-processing step auto-generates first-frame person masks using YOLOv8-seg for SAM 2 prompting.
+Wild Video is stored under the unified `results/results_wild_video/` output root. Since it has no ground-truth annotations, a pre-processing step auto-generates first-frame person masks using YOLOv8-seg for SAM 2 prompting.
 
 **Step 1 — Prepare Wild Video data** (extract frames + auto-annotate):
 
@@ -104,20 +104,20 @@ sbatch slurm_vggt4d_wild.sh
 # Logs: cat temp/vggt4d_wild_output.txt
 ```
 
-Results are saved to `results/wild_sam2/` and `results/wild_vggt4d/` respectively, with the same structure as DAVIS results (`frames/`, `masks/`, `inpainted.mp4`).
+Results are saved to `results/results_wild_video/sam2/` and `results/results_wild_video/vggt4d/` respectively, with the same structure as the formal DAVIS outputs (`frames/`, `masks/`, `inpainted.mp4`).
 
 ### 4. Evaluate
 
 ```bash
 # Evaluate individual pipelines
-python evaluate.py --pred results/vggt4d --davis-root ../data/DAVIS
-python evaluate.py --pred results/sam2 --davis-root ../data/DAVIS
+python evaluate.py --pred results/results_davis_full/vggt4d --davis-root ../data/DAVIS
+python evaluate.py --pred results/results_davis_full/sam2 --davis-root ../data/DAVIS
 
 # Compare two pipelines side-by-side
-python evaluate.py --pred results/vggt4d --pred2 results/sam2 --davis-root ../data/DAVIS
+python evaluate.py --pred results/results_davis_full/vggt4d --pred2 results/results_davis_full/sam2 --davis-root ../data/DAVIS
 
 # Save results to JSON
-python evaluate.py --pred results/sam2 --save-json results/sam2_metrics.json
+python evaluate.py --pred results/results_davis_full/sam2 --save-json results/results_davis_full/sam2_metrics.json
 ```
 
 ## Project Structure
@@ -147,10 +147,26 @@ part2/
 
 ## Output Structure
 
+All formal outputs now follow the same naming scheme:
+
 ```
-results/<method>/<sequence>/
-├── masks/      # Predicted binary masks (255=foreground, 0=background)
-└── frames/     # Inpainted frames (PNG)
+results/
+├── results_davis_full/
+│   └── <method>/<sequence>/
+├── results_sample_data/
+│   └── <method>/<sequence>/
+└── results_wild_video/
+    └── <method>/<sequence>/
+```
+
+`results/results_sample_data/` stores the course sample sequences `bmx-trees` and `tennis`, copied from the corresponding formal DAVIS outputs.
+
+Each sequence folder contains:
+
+```
+masks/      # Predicted binary masks (255=foreground, 0=background)
+frames/     # Inpainted frames (PNG)
+inpainted.mp4
 ```
 
 ## Metrics
@@ -186,7 +202,7 @@ Evaluated on DAVIS 2017 validation set mandatory sequences (`bmx-trees`, `tennis
 
 > †VGGT4D masks span the full frame (bbox = full resolution), so PSNR_masked = PSNR_full for VGGT4D.
 
-Full results saved in `results/comparison_metrics.json`.
+Full DAVIS comparison results are saved in `results/results_davis_full/comparison_metrics.json`.
 
 ### Runtime
 
@@ -207,20 +223,16 @@ Full results saved in `results/comparison_metrics.json`.
 
 ### Wild Video Results
 
-Wild Video is self-recorded footage (6 clips: ride1-3, run1-3) recorded at HKUST(GZ) campus. No ground-truth annotations exist, so **quantitative metrics (JM/JR) are not applicable**. First-frame person masks are auto-generated using YOLOv8-seg (`prepare_wild_video.py`) as SAM 2 prompts.
+Wild Video is stored and organized under the unified `results/results_wild_video/` output root. No ground-truth annotations exist, so **quantitative metrics (JM/JR) are not applicable**. First-frame person masks are auto-generated using YOLOv8-seg (`prepare_wild_video.py`) as SAM 2 prompts.
 
 #### Sequence Summary
 
-| Sequence | Frames | Annotation Frame | Note |
-|----------|--------|-----------------|------|
-| ride1 | 146 | 63 | Person enters mid-clip |
-| ride2 | 84 | 0 | Person visible from start |
-| ride3 | 157 | 67 | Person enters mid-clip |
-| run1 | 111 | 0 | Person visible from start |
-| run2 | 128 | 0 | Person visible from start |
-| run3 | 134 | 23 | Person enters early in clip |
+In the current rerun, the paired wild-video set is:
 
-> **Note**: For sequences where the person does not appear in frame 0, `prepare_wild_video.py` scans all frames to find the first frame with a detected person, saves that annotation as `{frame_idx:05d}.png`, and SAM 2 starts tracking from that frame onwards. Frames before the annotation frame have empty masks.
+- `Wild_Video1`
+- `Wild_Video2`
+
+The outputs are written to `results/results_wild_video/sam2/` and `results/results_wild_video/vggt4d/`.
 
 #### Runtime (NVIDIA A40, 480p)
 
@@ -231,8 +243,14 @@ Wild Video is self-recorded footage (6 clips: ride1-3, run1-3) recorded at HKUST
 
 Results are saved under:
 ```
-results/wild_sam2/<seq>/    # SAM 2 + ProPainter
-results/wild_vggt4d/<seq>/  # VGGT4D + ProPainter
+results/results_wild_video/sam2/<seq>/    # SAM 2 + ProPainter
+results/results_wild_video/vggt4d/<seq>/  # VGGT4D + ProPainter
+```
+
+The course sample sequences are copied to:
+```
+results/results_sample_data/sam2/
+results/results_sample_data/vggt4d/
 ```
 
 Each sequence folder contains `frames/` (inpainted PNGs), `masks/` (binary masks), and `inpainted.mp4`.

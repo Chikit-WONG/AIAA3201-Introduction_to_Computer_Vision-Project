@@ -1,7 +1,7 @@
 # Part 3 full DAVIS rerun configuration for SAM 3
 
 project_root: ".."
-output_root: "results/DAVIS_Dataset/sam3"
+output_root: "results/results_davis_full/sam3"
 device: "cuda"
 gpu_id: 0
 

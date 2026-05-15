@@ -5,9 +5,48 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
+from pathlib import Path
 
-from src.io_utils import load_yaml
+from src.io_utils import load_yaml, slugify
 from src.pipeline import Part3Pipeline
+
+
+
+
+SAMPLE_DATA_SEQUENCES = {"bmx-trees", "tennis", "bmx_trees"}
+
+
+def sync_sample_data_sequence(part3_dir: str, output_root: str, sequence: str) -> None:
+    if sequence not in SAMPLE_DATA_SEQUENCES:
+        return
+
+    output_path = Path(output_root)
+    if not output_path.is_absolute():
+        output_path = (Path(part3_dir) / output_path).resolve()
+    else:
+        output_path = output_path.resolve()
+
+    parts = output_path.parts
+    try:
+        results_idx = parts.index("results")
+    except ValueError:
+        return
+
+    relative = Path(*parts[results_idx:])
+    if len(relative.parts) < 3 or relative.parts[0] != "results" or relative.parts[1] != "results_davis_full":
+        return
+
+    variant = relative.parts[2]
+    seq_slug = slugify(sequence)
+    target_root = output_path.parents[1] / "results_sample_data" / variant
+    for branch in ("frames", "logs", "masks", "videos"):
+        source = output_path / branch / seq_slug
+        target = target_root / branch / seq_slug
+        if source.exists():
+            shutil.rmtree(target, ignore_errors=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, target, symlinks=True)
 
 
 def main():
@@ -67,6 +106,8 @@ def main():
         allow_existing_masks=args.allow_existing_masks,
         existing_mask_dir=args.existing_mask_dir,
     )
+    sync_sample_data_sequence(part3_dir, config.get("output_root", "results/results_wild_video"), args.sequence)
+
     print("Part 3 run completed:")
     for key, value in result.items():
         print(f"  {key}: {value}")

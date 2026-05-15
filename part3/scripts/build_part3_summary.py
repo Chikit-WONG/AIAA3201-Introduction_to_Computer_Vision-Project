@@ -65,11 +65,11 @@ def main() -> None:
     variants = {
         "sam3": {
             "wild_metrics": first_existing_dir(
-                os.path.join(root, "results", "Wild_Video", "sam3", "metrics"),
+                os.path.join(root, "results", "results_wild_video", "sam3", "metrics"),
                 os.path.join(root, "outputs", "full", "sam3", "metrics"),
             ),
             "davis_metrics": first_existing_dir(
-                os.path.join(root, "results", "DAVIS_Dataset", "sam3", "metrics"),
+                os.path.join(root, "results", "results_davis_full", "sam3", "metrics"),
                 os.path.join(root, "outputs", "davis_full", "sam3", "metrics"),
             ),
         },
@@ -77,11 +77,11 @@ def main() -> None:
     if args.include_sam3_1:
         variants["sam3.1"] = {
             "wild_metrics": first_existing_dir(
-                os.path.join(root, "results", "Wild_Video", "sam3_1", "metrics"),
+                os.path.join(root, "results", "results_wild_video", "sam3_1", "metrics"),
                 os.path.join(root, "outputs", "full", "sam3_1", "metrics"),
             ),
             "davis_metrics": first_existing_dir(
-                os.path.join(root, "results", "DAVIS_Dataset", "sam3_1", "metrics"),
+                os.path.join(root, "results", "results_davis_full", "sam3_1", "metrics"),
                 os.path.join(root, "outputs", "davis_full", "sam3_1", "metrics"),
             ),
         }

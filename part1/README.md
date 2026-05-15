@@ -49,13 +49,13 @@ python run.py --davis --sequences bmx-trees tennis car-shadow
 ### Disable Temporal Propagation (ablation)
 
 ```bash
-python run.py --davis --no-temporal --output results_no_temporal
+python run.py --davis --no-temporal --output results/results_davis_full/spatial_only
 ```
 
 ### Process a Single Video File
 
 ```bash
-python run.py --input path/to/video.mp4 --output results/my_video
+python run.py --input path/to/video.mp4 --output results/results_wild_video/my_video
 ```
 
 ### Running on SLURM Cluster
@@ -63,7 +63,7 @@ python run.py --input path/to/video.mp4 --output results/my_video
 GPU resources on the HPC cluster must be requested via SLURM. Use the provided script to process all Wild Videos in one job.
 
 ```bash
-# Submit Wild Video job (6 videos: ride1-3, run1-3)
+# Submit Wild Video job (current paired set: Wild_Video1, Wild_Video2)
 sbatch slurm_wild.sh
 
 # Monitor job status
@@ -76,7 +76,7 @@ cat temp/wild_err.txt
 
 **Notes:**
 - Uses the `debug` partition (30-minute limit, 1 GPU).
-- Results are saved to `results/wild_video/<seq>/` (frames + output.mp4).
+- Results are saved to `results/results_wild_video/<variant>/<seq>/` (frames + output.mp4).
 
 ### Custom Config
 
@@ -88,10 +88,10 @@ python run.py --davis --config configs/custom.yaml
 
 ```bash
 # Evaluate all processed sequences
-python evaluate.py --pred results --davis-root ../data/DAVIS
+python evaluate.py --pred results/results_davis_full/temporal_aligned --davis-root ../data/DAVIS
 
 # Save results as JSON
-python evaluate.py --pred results --davis-root ../data/DAVIS --save-json results/metrics.json
+python evaluate.py --pred results/results_davis_full/temporal_aligned --davis-root ../data/DAVIS --save-json results/results_davis_full/temporal_aligned_metrics.json
 ```
 
 ### Metrics
@@ -110,6 +110,10 @@ python evaluate.py --pred results --davis-root ../data/DAVIS --save-json results
 │   └── default.yaml           # Pipeline configuration
 ├── data/
 │   └── DAVIS/                 # DAVIS 2017 dataset
+├── results/
+│   ├── results_davis_full/    # Formal DAVIS outputs
+│   ├── results_sample_data/   # bmx-trees / tennis copied from DAVIS outputs
+│   └── results_wild_video/    # Formal Wild_Video outputs
 ├── src/
 │   ├── mask_extraction.py     # YOLOv8-Seg + optical flow + dilation
 │   ├── inpainting.py          # Temporal propagation + cv2.inpaint
@@ -172,26 +176,33 @@ Direct pixel copy from neighbour frames without geometric correction introduces 
 **Why temporal + optical-flow alignment is the best:**
 Before copying each neighbour frame's pixels, Farneback dense optical flow warps the neighbour to the current frame's coordinate system. This eliminates the misalignment, allowing borrowed pixels to land at geometrically correct positions. The improvement is most dramatic for bmx-trees (significant camera motion): **masked PSNR improves +3.15 dB** vs no-align (16.84 vs 13.69). For tennis (mostly static camera), the gain is smaller (+0.17 dB masked) as alignment matters less when global motion is small.
 
+### Sample Data
+
+`results/results_sample_data/` stores the two course sample sequences copied from the formal DAVIS outputs:
+
+- `bmx-trees`
+- `tennis`
+
+The copy is refreshed automatically when you run Part 1 on `results/results_davis_full/...`, or manually with:
+
+```bash
+python sync_sample_data.py
+```
+
 ### Wild Video
 
-Self-recorded footage (6 clips: ride1-3, run1-3) at HKUST(GZ) campus, processed using `slurm_wild.sh`.
+The formal Wild Video outputs are stored under `results/results_wild_video/`. In the current project rerun, the paired clips are:
 
-| Sequence | Frames | Output |
-|----------|--------|--------|
-| ride1 | 146 | `results/wild_video/ride1/output.mp4` |
-| ride2 | 84 | `results/wild_video/ride2/output.mp4` |
-| ride3 | 157 | `results/wild_video/ride3/output.mp4` |
-| run1 | 111 | `results/wild_video/run1/output.mp4` |
-| run2 | 128 | `results/wild_video/run2/output.mp4` |
-| run3 | 134 | `results/wild_video/run3/output.mp4` |
+- `Wild_Video1`
+- `Wild_Video2`
 
-Each sequence folder contains:
+Example layout:
 ```
-results/wild_video/<seq>/
+results/results_wild_video/<variant>/<seq>/
 ├── frames/         # Inpainted frames (PNG)
 ├── masks/          # Predicted binary masks (PNG)
 ├── visualization/
 └── output.mp4      # Final inpainted video
 ```
 
-*(Quantitative metrics not available for Wild Video — no ground-truth annotations.)*
+*(Quantitative metrics are not provided for Wild Video inside Part 1 itself.)*

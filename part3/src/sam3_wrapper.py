@@ -183,6 +183,21 @@ class SAM3MaskGenerator:
         return mask_dict
 
     @staticmethod
+    def _extract_per_object_masks(annotation_path: str) -> list[tuple[int, np.ndarray]]:
+        """Read a DAVIS-style annotation and return one binary mask per object ID.
+
+        Returns a list of (obj_id, binary_mask) tuples, sorted by obj_id.
+        Falls back to single-object (id=1) if the annotation is already binary.
+        """
+        ann = cv2.imread(annotation_path, cv2.IMREAD_GRAYSCALE)
+        if ann is None:
+            raise FileNotFoundError(f"Annotation not found or unreadable: {annotation_path}")
+        unique_ids = sorted(int(v) for v in set(ann.flatten()) if v != 0)
+        if not unique_ids:
+            raise ValueError(f"Annotation mask is empty: {annotation_path}")
+        return [(obj_id, (ann == obj_id).astype(np.uint8)) for obj_id in unique_ids]
+
+    @staticmethod
     def _collect_tracker_propagation(
         model,
         frames_dir: str,
@@ -234,28 +249,36 @@ class SAM3MaskGenerator:
             )
             inference_state["images"] = tracker_images
 
-        init_mask = cv2.imread(init_mask_path, cv2.IMREAD_GRAYSCALE)
-        if init_mask is None:
-            raise FileNotFoundError(f"Initial mask not found or unreadable: {init_mask_path}")
-        init_mask_tensor = torch.from_numpy((init_mask > 0).astype(np.uint8))
+        # --- Multi-object initialization (per-object DAVIS GT masks) ---
+        # Extract one binary mask per DAVIS object ID from the annotation.
+        # This mirrors how SAM2 initializes tracking (see part2/src/mask_sam2.py)
+        # and is the primary reason SAM3 had lower JR: the old code collapsed all
+        # objects into a single union mask (obj_id=1), losing per-object identity.
+        per_object = SAM3MaskGenerator._extract_per_object_masks(init_mask_path)
+        obj_ids = [oid for oid, _ in per_object]
+        masks_np = np.stack([m for _, m in per_object], axis=0)  # (N, H, W), uint8 {0,1}
+        masks_tensor = torch.from_numpy(masks_np)
+        print(f"[SAM3] Multi-object init: {len(obj_ids)} object(s) with IDs {obj_ids}")
 
         with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=torch.cuda.is_available()):
             if hasattr(tracker, "add_new_masks"):
                 tracker.add_new_masks(
                     inference_state=inference_state,
                     frame_idx=frame_index,
-                    obj_ids=[1],
-                    masks=init_mask_tensor.unsqueeze(0),
+                    obj_ids=obj_ids,
+                    masks=masks_tensor,
                     add_mask_to_memory=True,
                 )
             else:
-                tracker.add_new_mask(
-                    inference_state=inference_state,
-                    frame_idx=frame_index,
-                    obj_id=1,
-                    mask=init_mask_tensor,
-                    add_mask_to_memory=True,
-                )
+                # Fallback: insert objects one at a time
+                for obj_id, mask_np in per_object:
+                    tracker.add_new_mask(
+                        inference_state=inference_state,
+                        frame_idx=frame_index,
+                        obj_id=obj_id,
+                        mask=torch.from_numpy(mask_np),
+                        add_mask_to_memory=True,
+                    )
 
         propagate_kwargs = dict(
             inference_state=inference_state,
@@ -271,15 +294,15 @@ class SAM3MaskGenerator:
 
         mask_dict: dict[int, dict[int, np.ndarray]] = {}
         with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=torch.cuda.is_available()):
-            for frame_idx, obj_ids, _low_res_masks, video_res_masks, _obj_scores in tracker.propagate_in_video(
+            for frame_idx, obj_ids_out, _low_res_masks, video_res_masks, _obj_scores in tracker.propagate_in_video(
                 **filtered_propagate_kwargs,
             ):
-                if isinstance(obj_ids, torch.Tensor):
-                    obj_ids = obj_ids.detach().cpu().numpy()
+                if isinstance(obj_ids_out, torch.Tensor):
+                    obj_ids_out = obj_ids_out.detach().cpu().numpy()
                 if isinstance(video_res_masks, torch.Tensor):
                     video_res_masks = video_res_masks.detach().cpu().numpy()
                 frame_masks: dict[int, np.ndarray] = {}
-                for idx, object_id in enumerate(obj_ids):
+                for idx, object_id in enumerate(obj_ids_out):
                     mask = video_res_masks[idx]
                     if mask.ndim == 3:
                         mask = mask[0]
@@ -309,6 +332,22 @@ class SAM3MaskGenerator:
             (frame_w, frame_h),
             interpolation=cv2.INTER_NEAREST,
         )
+
+    @staticmethod
+    def _detect_area_collapse(
+        frame_stats: list[dict[str, Any]],
+        init_area: int,
+        collapse_threshold: float = 0.1,
+    ) -> list[int]:
+        """Return frame indices where mask area dropped below collapse_threshold * init_area."""
+        if init_area == 0:
+            return []
+        threshold = init_area * collapse_threshold
+        return [
+            item["frame_index"]
+            for item in frame_stats
+            if item["nonzero_pixels"] < threshold and item["frame_index"] > 0
+        ]
 
     @staticmethod
     def _write_mask_stats(stats_path: str, frame_stats: list[dict[str, Any]], init_mask_path: str | None) -> dict[str, Any]:
@@ -417,8 +456,9 @@ class SAM3MaskGenerator:
         session_id = None
         frame_shape = cv2.imread(frame_paths[self.frame_index]).shape[:2]
         if init_mask_path:
-            # For DAVIS-style evaluation, use the provided first-frame binary mask
-            # directly. Converting it to a box prompt can silently produce empty masks.
+            # For DAVIS-style evaluation, use the provided first-frame annotation mask
+            # with per-object initialization. Each DAVIS object ID gets its own tracked
+            # object, matching the SAM2 multi-object prompt strategy and improving JR.
             mask_dict = self._collect_tracker_propagation(
                 model,
                 frames_dir=frames_dir,
@@ -426,10 +466,16 @@ class SAM3MaskGenerator:
                 frame_index=self.frame_index,
                 async_loading_frames=self.async_loading_frames,
             )
-            init_mask = cv2.imread(init_mask_path, cv2.IMREAD_GRAYSCALE)
-            if init_mask is None:
-                raise FileNotFoundError(f"Initial mask not found or unreadable: {init_mask_path}")
-            mask_dict.setdefault(self.frame_index, {})[1] = self._resize_mask_to_frame(init_mask, frame_shape)
+            # Seed the init frame with the union of all object masks so frame 0 is always correct
+            per_object = self._extract_per_object_masks(init_mask_path)
+            init_union = np.zeros(frame_shape, dtype=np.uint8)
+            for obj_id, obj_mask in per_object:
+                resized = self._resize_mask_to_frame(obj_mask * 255, frame_shape)
+                init_union = np.clip(init_union + (resized > 0).astype(np.uint8) * 255, 0, 255).astype(np.uint8)
+            init_frame_masks = mask_dict.setdefault(self.frame_index, {})
+            # Re-insert each object mask for the init frame so they are available for union
+            for obj_id, obj_mask in per_object:
+                init_frame_masks[obj_id] = self._resize_mask_to_frame(obj_mask * 255, frame_shape)
         else:
             prompt_request = self._build_prompt_request(
                 prompt,
@@ -483,6 +529,21 @@ class SAM3MaskGenerator:
 
         stats_path = os.path.join(os.path.dirname(output_mask_dir), "mask_stats.json")
         stats_summary = self._write_mask_stats(stats_path, frame_stats, init_mask_path)
+
+        # Detect area-collapse frames and record in stats (for diagnostic purposes)
+        if frame_stats and init_mask_path:
+            init_area = frame_stats[0]["nonzero_pixels"]
+            collapse_frames = self._detect_area_collapse(frame_stats, init_area)
+            if collapse_frames:
+                print(
+                    f"[SAM3] Warning: area collapse detected at {len(collapse_frames)} frame(s): "
+                    f"{collapse_frames[:5]}{'...' if len(collapse_frames) > 5 else ''}"
+                )
+                stats_summary["area_collapse_frames"] = collapse_frames
+                # Re-write stats with collapse info
+                ensure_dir(os.path.dirname(stats_path))
+                with open(stats_path, "w", encoding="utf-8") as f:
+                    json.dump(stats_summary, f, indent=2)
 
         if output_overlay_video and overlay_frames:
             write_video(overlay_frames, output_overlay_video, info["fps"] or 25.0)

@@ -30,7 +30,7 @@ is_completed() {
   local sequence="$1"
   local seq_slug
   seq_slug="$(slugify "$sequence")"
-  [[ -f "results/DAVIS_Dataset/sam3/videos/$seq_slug/sam3_rose_side_effect/output.mp4" ]]
+  [[ -f "results/results_davis_full/sam3/videos/$seq_slug/sam3_rose_side_effect/output.mp4" ]]
 }
 
 current_debug_jobs() {

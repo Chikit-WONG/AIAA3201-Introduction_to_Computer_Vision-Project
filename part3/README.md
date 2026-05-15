@@ -231,7 +231,7 @@ Notes:
 
 ### DAVIS
 
-DAVIS is used for mask evaluation on:
+Formal DAVIS outputs are written under `results/results_davis_full/`. DAVIS is used for mask evaluation on:
 
 - `bmx-trees`
 - `tennis`
@@ -242,7 +242,7 @@ Ground-truth annotations are read from:
 
 ### Wild Video
 
-Paired wild videos are used for restoration quality evaluation:
+Formal Wild Video outputs are written under `results/results_wild_video/`. Paired wild videos are used for restoration quality evaluation:
 
 - `Wild_Video1`
 - `Wild_Video2`
@@ -258,17 +258,17 @@ Clean ground truth is used only for evaluation, not for inference.
 
 Key files and folders:
 
-- [configs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/configs)
+- `configs/`
   - pipeline configs for default, full runs, and ablation runs
-- [src/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/src)
+- `src/`
   - pipeline implementation, wrappers, metrics, and utility code
-- [slurm_scripts/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts)
+- `slurm_scripts/`
   - SLURM scripts for smoke tests, method runs, and evaluation
-- [outputs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results)
-  - the only formal output root, with `full/`, `ablation/`, and future `davis_full/`
+- `results/`
+  - the formal output root, organized as `results/results_davis_full/`, `results/results_sample_data/`, and `results/results_wild_video/`
 - `artifacts_debug/`
   - non-final smoke checks, historical local runs, and archived SLURM logs
-- [plan/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/plan)
+- `plan/`
   - planning documents and execution specifications
 
 ## External Dependencies
@@ -368,27 +368,30 @@ python evaluate_part3.py \
 
 Important output roots:
 
-- `results/Wild_Video/`
+- `results/results_wild_video/`
   - final full experiments and final summary tables
 - `results_debug/ablation/`
   - optional `SAM 3` vs `SAM 3.1` smoke ablation
-- `results/DAVIS_Dataset/`
+- `results/results_davis_full/`
+- `results/results_sample_data/`
   - reserved for the full-DAVIS rerun outputs
 - `artifacts_debug/`
   - non-final smoke checks, archived local experiments, and SLURM job logs
 
-Inside `results/Wild_Video/<variant>/`, the most important folders are:
+Inside `results/results_wild_video/<variant>/`, the most important folders are:
 
 - `videos/`
 - `masks/`
+- `frames/`
+- `logs/`
 - `metrics/`
 
 Final summary tables are stored in:
 
-- [results/Wild_Video/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_full_summary.md)
-- [results/Wild_Video/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_results_table.md)
+- `results/summary/part3_full_summary.md`
+- `results/summary/part3_results_table.md`
 
-Chinese versions are also provided in the same folder.
+Chinese versions are also provided in the same summary folder.
 
 ## Final Results
 

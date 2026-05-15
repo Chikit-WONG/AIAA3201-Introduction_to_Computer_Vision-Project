@@ -69,7 +69,7 @@ def copy_sample_data_outputs(output_root: Path, sample_root: Path, sequences: li
     sample_sequences = [sequence for sequence in sequences if sequence in SAMPLE_DATA_SEQUENCES]
     if not sample_sequences:
         return
-    for branch in ("masks", "videos", "logs"):
+    for branch in ("frames", "masks", "videos", "logs"):
         for sequence in sample_sequences:
             seq_slug = slugify(sequence)
             source = output_root / branch / seq_slug
@@ -92,7 +92,7 @@ def main() -> None:
     parser.add_argument("--methods", nargs="+", default=None, choices=PART3_METHODS)
     parser.add_argument(
         "--sample-copy-dir",
-        default="results/Sample_Data",
+        default="results/results_sample_data",
         help="Copy bmx-trees and tennis outputs here after the DAVIS run.",
     )
     args = parser.parse_args()

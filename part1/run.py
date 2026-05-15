@@ -21,14 +21,47 @@ Usage:
 
 import argparse
 import os
+import shutil
+from pathlib import Path
 import yaml
 
 from src.pipeline import VideoPipeline
+from src.video_utils import pack_result_videos as pack_result_videos_root
 
 
 def load_config(config_path: str) -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+
+
+SAMPLE_DATA_SEQUENCES = {"bmx-trees", "tennis"}
+
+
+def sync_sample_data_sequence(output_root: str, sequence: str) -> None:
+    if sequence not in SAMPLE_DATA_SEQUENCES:
+        return
+
+    output_path = Path(output_root).resolve()
+    parts = output_path.parts
+    try:
+        results_idx = parts.index("results")
+    except ValueError:
+        return
+
+    relative = Path(*parts[results_idx:])
+    if len(relative.parts) < 3 or relative.parts[0] != "results" or relative.parts[1] != "results_davis_full":
+        return
+
+    variant = relative.parts[2]
+    source = output_path / sequence
+    target = output_path.parents[1] / "results_sample_data" / variant / sequence
+    if not source.is_dir():
+        return
+    shutil.rmtree(target, ignore_errors=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, target)
 
 
 def main():
@@ -126,6 +159,7 @@ def main():
             print(f"Sequence: {seq}")
             print(f"{'='*60}")
             pipeline.process_davis_sequence(seq_dir, out_dir)
+            sync_sample_data_sequence(args.output, seq)
 
         print(f"\nAll sequences processed. Results in: {args.output}")
     elif args.input:
@@ -135,6 +169,7 @@ def main():
             return
         print(f"Processing video: {args.input}")
         pipeline.process_video_file(args.input, args.output)
+        pack_result_videos_root((Path(__file__).resolve().parent / args.output).resolve(), Path(__file__).resolve().parent)
     else:
         parser.print_help()
         print("\nError: specify --davis or --input <video_path>.")

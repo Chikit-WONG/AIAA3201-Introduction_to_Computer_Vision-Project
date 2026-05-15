@@ -52,3 +52,7 @@ part3/external/
 logs/
 
 plan/
+
+results_debug/
+
+results_summary/

@@ -12,6 +12,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from src.video_utils import frames_to_video, infer_fps
+
 
 class ProPainterInpainter:
     """Video inpainting using ProPainter via its CLI."""
@@ -29,6 +31,7 @@ class ProPainterInpainter:
         self.neighbor_length = pp_cfg.get("neighbor_length", 10)
         self.ref_stride = pp_cfg.get("ref_stride", 10)
         self.subvideo_length = pp_cfg.get("subvideo_length", 80)
+        self.output_video_fps = pp_cfg.get("output_video_fps", 30)
         self.gpu_id = config.get("gpu_id", 0)
 
         inference_script = self.repo_dir / "inference_propainter.py"
@@ -41,21 +44,10 @@ class ProPainterInpainter:
                 f"ProPainter weights directory not found: {self.weights_dir}"
             )
 
-    def inpaint(self, frames_dir: str, masks_dir: str, output_dir: str):
-        """Run ProPainter inpainting.
-
-        Args:
-            frames_dir: directory with input frames (00000.jpg, ...).
-            masks_dir: directory with binary masks (00000.png, ...).
-                       White (255) = inpaint region, Black (0) = keep.
-            output_dir: directory to save inpainted frames.
-        """
+    def inpaint(self, frames_dir: str, masks_dir: str, output_dir: str, sequence_name: str | None = None):
         os.makedirs(output_dir, exist_ok=True)
 
         inference_script = self.repo_dir / "inference_propainter.py"
-
-        # ProPainter saves results to a subfolder under --output
-        # We'll use a temp output and then move files
         pp_output = os.path.join(output_dir, "_propainter_tmp")
 
         cmd = [
@@ -83,33 +75,30 @@ class ProPainterInpainter:
         )
 
         if result.returncode != 0:
-            print(f"[ProPainter] STDERR:\n{result.stderr}")
+            print("[ProPainter] STDERR:\n" + result.stderr)
             raise RuntimeError(
                 f"ProPainter failed with return code {result.returncode}"
             )
 
-        # Move inpainted frames from ProPainter output to our output_dir
-        # ProPainter typically saves to <output>/inpaint_out/<result_name>/
         self._collect_results(pp_output, output_dir, frames_dir)
 
-        # Cleanup temp dir
         if os.path.isdir(pp_output):
             shutil.rmtree(pp_output)
 
+        fps = infer_fps(self.project_root, sequence_name, self.output_video_fps)
+        video_path = Path(output_dir).parent / "inpainted.mp4"
+        frames_to_video(output_dir, video_path, fps=fps)
+
         print(f"[ProPainter] Inpainted frames saved to {output_dir}")
+        print(f"[ProPainter] Video saved to {video_path}")
 
     def _resolve_project_path(self, path_str: str) -> Path:
-        """Resolve config paths relative to the part2 project root."""
         path = Path(path_str)
         if path.is_absolute():
             return path
         return (self.project_root / path).resolve()
 
-    def _collect_results(self, pp_output: str, target_dir: str,
-                         frames_dir: str):
-        """Find and copy inpainted frames from ProPainter output structure."""
-        # ProPainter outputs: <pp_output>/<subdir>/inpaint_out.png or
-        # frame-by-frame in a subfolder. Search recursively for PNG/JPG files.
+    def _collect_results(self, pp_output: str, target_dir: str, frames_dir: str):
         result_frames = []
         for root, dirs, files in os.walk(pp_output):
             for f in sorted(files):
@@ -118,7 +107,6 @@ class ProPainterInpainter:
 
         if not result_frames:
             print(f"[ProPainter] Warning: no output frames found in {pp_output}")
-            # Fallback: copy original frames
             orig_frames = sorted(
                 glob.glob(os.path.join(frames_dir, "*.jpg"))
                 + glob.glob(os.path.join(frames_dir, "*.png"))
@@ -128,19 +116,16 @@ class ProPainterInpainter:
                 shutil.copy2(f, os.path.join(target_dir, fname))
             return
 
-        # Get original frame names for consistent naming
         orig_frames = sorted(
             glob.glob(os.path.join(frames_dir, "*.jpg"))
             + glob.glob(os.path.join(frames_dir, "*.png"))
         )
 
         if len(result_frames) == len(orig_frames):
-            # Match by order
             for src, orig in zip(result_frames, orig_frames):
                 fname = os.path.splitext(os.path.basename(orig))[0] + ".png"
                 shutil.copy2(src, os.path.join(target_dir, fname))
         else:
-            # Just copy what we have with original names
             for i, src in enumerate(result_frames):
                 if i < len(orig_frames):
                     fname = os.path.splitext(

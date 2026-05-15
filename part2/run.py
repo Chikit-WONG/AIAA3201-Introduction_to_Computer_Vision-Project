@@ -18,14 +18,46 @@ Usage:
 
 import argparse
 import os
+import shutil
+from pathlib import Path
 import yaml
 
 from src.pipeline import VideoRemovalPipeline
+from src.video_utils import pack_result_videos as pack_result_videos_root
 
 
 def load_config(config_path: str) -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+
+
+SAMPLE_DATA_SEQUENCES = {"bmx-trees", "tennis"}
+
+
+def sync_sample_data_sequence(output_root: str, sequence: str, method: str) -> None:
+    if sequence not in SAMPLE_DATA_SEQUENCES:
+        return
+
+    output_path = Path(output_root).resolve()
+    parts = output_path.parts
+    try:
+        results_idx = parts.index("results")
+    except ValueError:
+        return
+
+    relative = Path(*parts[results_idx:])
+    if len(relative.parts) < 3 or relative.parts[0] != "results" or relative.parts[1] != "results_davis_full":
+        return
+
+    source = output_path / sequence
+    target = output_path.parents[1] / "results_sample_data" / method / sequence
+    if not source.is_dir():
+        return
+    shutil.rmtree(target, ignore_errors=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, target)
 
 
 def main():
@@ -107,6 +139,11 @@ def main():
     # Build and run pipeline
     pipeline = VideoRemovalPipeline(config)
     pipeline.process_davis(davis_root, output_root, sequences, resolution)
+
+    for sequence in sequences:
+        sync_sample_data_sequence(output_root, sequence, method)
+
+    pack_result_videos_root(Path(output_root).resolve(), Path(__file__).resolve().parent)
 
 
 if __name__ == "__main__":

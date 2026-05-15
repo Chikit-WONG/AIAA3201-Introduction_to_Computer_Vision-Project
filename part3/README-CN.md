@@ -258,17 +258,17 @@ clean ground truth 只用于评估，不参与推理。
 
 核心文件和目录如下：
 
-- [configs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/configs)
+- `configs/`
   - 默认配置、完整实验配置和消融配置
-- [src/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/src)
+- `src/`
   - pipeline 实现、wrapper、评估和工具代码
-- [slurm_scripts/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/slurm_scripts)
+- `slurm_scripts/`
   - smoke test、方法运行和评估的 SLURM 脚本
-- [outputs/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results)
-  - 唯一正式输出根目录，下面按 `full/`、`ablation/` 和未来的 `davis_full/` 分类
+- `results/`
+  - 正式输出根目录，统一组织为 `results/results_davis_full/`、`results/results_sample_data/` 和 `results/results_wild_video/`
 - `artifacts_debug/`
   - 非最终 smoke 检查、历史本地运行结果和归档的 SLURM 日志
-- [plan/](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/plan)
+- `plan/`
   - 规划文档和执行规格书
 
 ## 外部依赖
@@ -374,27 +374,31 @@ python evaluate_part3.py \
 
 主要输出根目录：
 
-- `results/Wild_Video/`
-  - 最终完整实验结果和最终汇总表
+- `results/results_davis_full/`
+  - 完整 DAVIS 正式结果
+- `results/results_sample_data/`
+  - `bmx-trees` 和 `tennis`，从对应 DAVIS 正式结果复制而来
+- `results/results_wild_video/`
+  - paired wild-video 正式结果
 - `results_debug/ablation/`
   - 可选的 `SAM 3` vs `SAM 3.1` smoke 消融
-- `results/DAVIS_Dataset/`
-  - 预留给全 DAVIS 重跑结果
 - `artifacts_debug/`
   - 非最终 smoke 检查、归档的本地实验和 SLURM 日志
 
-在 `results/Wild_Video/<variant>/` 下面，最重要的是：
+在 `results/results_wild_video/<variant>/` 下面，最重要的是：
 
 - `videos/`
 - `masks/`
+- `frames/`
+- `logs/`
 - `metrics/`
 
 最终汇总表位于：
 
-- [results/Wild_Video/summary/part3_full_summary.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_full_summary.md)
-- [results/Wild_Video/summary/part3_results_table.md](/hpc2hdd/home/ckwong627/workdir/Class/AIAA3201_L01_Introduction_to_Computer_Vision/Project/Group-Project/AIAA3201-Introduction_to_Computer_Vision-Project/part3/results/Wild_Video/summary/part3_results_table.md)
+- `results/summary/part3_full_summary.md`
+- `results/summary/part3_results_table.md`
 
-同目录下也提供了中文版。
+同一个 summary 目录下也提供了中文版。
 
 ## 最终结果
 

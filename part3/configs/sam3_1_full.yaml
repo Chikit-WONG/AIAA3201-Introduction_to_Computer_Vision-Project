@@ -1,7 +1,7 @@
 # Part 3 SAM 3.1 full-run configuration
 
 project_root: ".."
-output_root: "results/Wild_Video/sam3_1"
+output_root: "results/results_wild_video/sam3_1"
 device: "cuda"
 gpu_id: 0
 
