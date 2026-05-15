@@ -289,9 +289,12 @@
       border-radius: 20px;
       margin-bottom: 4px;
     }
+    .v-input .vlabel-badge { background: #f1f5f9; color: #475569; }
     .v-p1 .vlabel-badge { background: #fef3c7; color: #92400e; }
     .v-p2 .vlabel-badge { background: #d1fae5; color: #065f46; }
     .v-p3 .vlabel-badge { background: #dbeafe; color: #1e40af; }
+    .input-row { display: flex; justify-content: center; margin-bottom: 4px; }
+    .input-row .video-card { width: 320px; }
     .video-label strong { display: block; font-size: 0.88rem; }
     .video-label span { font-size: 0.79rem; color: var(--muted); }
 
@@ -419,6 +422,20 @@
 
     <!-- ── bmx-trees ── -->
     <div id="tab-bmx" class="tab-panel active">
+      <div class="video-subheading">Original Input</div>
+      <div class="input-row">
+        <div class="video-card v-input">
+          <video loop muted playsinline preload="auto">
+            <source src="assets/videos/orig_bmx_trees.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">INPUT</span>
+            <strong>bmx-trees (DAVIS 2017)</strong>
+            <span>480p · 80 frames · 24 fps</span>
+          </div>
+        </div>
+      </div>
+
       <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
       <div class="video-grid-2">
         <div class="video-card v-p1">
@@ -438,12 +455,12 @@
           <div class="video-label">
             <span class="vlabel-badge">PART 2</span>
             <strong>SAM 2 + ProPainter</strong>
-            <span>AI-driven pipeline &nbsp;·&nbsp; JM 0.7412, JR 0.9500</span>
+            <span>AI-driven &nbsp;·&nbsp; JM 0.7412, JR 0.9500</span>
           </div>
         </div>
       </div>
 
-      <div class="video-subheading">Part 3 — SAM 3 Variants (5 methods)</div>
+      <div class="video-subheading">Part 3 — SAM 3 Variants</div>
       <div class="video-grid-3">
         <div class="video-card v-p3">
           <video loop muted playsinline preload="auto">
@@ -462,7 +479,7 @@
           <div class="video-label">
             <span class="vlabel-badge">PART 3</span>
             <strong>SAM 3 + DiffuEraser</strong>
-            <span>Diffusion backend &nbsp;·&nbsp; best wild PSNR</span>
+            <span>Diffusion &nbsp;·&nbsp; best wild PSNR</span>
           </div>
         </div>
         <div class="video-card v-p3">
@@ -492,7 +509,7 @@
           <div class="video-label">
             <span class="vlabel-badge">PART 3</span>
             <strong>SAM 3 + ROSE-SE</strong>
-            <span>Transformer + side-effect mask &nbsp;·&nbsp; best wild SSIM</span>
+            <span>Transformer + side-effect &nbsp;·&nbsp; best wild SSIM</span>
           </div>
         </div>
       </div>
@@ -500,7 +517,22 @@
 
     <!-- ── tennis ── -->
     <div id="tab-tennis" class="tab-panel">
-      <div class="video-grid-3">
+      <div class="video-subheading">Original Input</div>
+      <div class="input-row">
+        <div class="video-card v-input">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/orig_tennis.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">INPUT</span>
+            <strong>tennis (DAVIS 2017)</strong>
+            <span>480p · 70 frames · 24 fps</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
+      <div class="video-grid-2">
         <div class="video-card v-p1">
           <video loop muted playsinline preload="none">
             <source src="assets/videos/part1_tennis.mp4" type="video/mp4" />
@@ -518,7 +550,51 @@
           <div class="video-label">
             <span class="vlabel-badge">PART 2</span>
             <strong>SAM 2 + ProPainter</strong>
-            <span>AI-driven pipeline &nbsp;·&nbsp; JM 0.9354, JR 1.0000</span>
+            <span>AI-driven &nbsp;·&nbsp; JM 0.9354, JR 1.0000</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-subheading">Part 3 — SAM 3 Variants</div>
+      <div class="video-grid-3">
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part3_tennis_propainter.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ProPainter</strong>
+            <span>Propagation-based baseline</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part3_tennis_diffueraser.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser</strong>
+            <span>Diffusion backend</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part3_tennis_diffueraser_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser-SE</strong>
+            <span>Diffusion + side-effect mask</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/part3_tennis_rose.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE</strong>
+            <span>Transformer inpainting</span>
           </div>
         </div>
         <div class="video-card v-p3">
@@ -528,7 +604,7 @@
           <div class="video-label">
             <span class="vlabel-badge">PART 3</span>
             <strong>SAM 3 + ROSE-SE</strong>
-            <span>Best overall SSIM &nbsp;·&nbsp; side-effect mask</span>
+            <span>Transformer + side-effect &nbsp;·&nbsp; best wild SSIM</span>
           </div>
         </div>
       </div>
@@ -536,10 +612,26 @@
 
     <!-- ── Wild Video 2 ── -->
     <div id="tab-wild2" class="tab-panel">
-      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">
-        Real-world clip with no ground-truth annotations. Evaluated against a paired clean no-person reference video.
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:4px;">
+        Real-world clip. PSNR/SSIM evaluated against a paired clean no-person reference video.
       </p>
-      <div class="video-grid-3">
+
+      <div class="video-subheading">Original Input</div>
+      <div class="input-row">
+        <div class="video-card v-input">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/orig_wild2.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">INPUT</span>
+            <strong>Wild Video 2 (with person)</strong>
+            <span>480p · 192 frames · real-world</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-subheading">Part 1 &amp; Part 2 — Classical vs. AI-Driven</div>
+      <div class="video-grid-2">
         <div class="video-card v-p1">
           <video loop muted playsinline preload="none">
             <source src="assets/videos/wild2_part1.mp4" type="video/mp4" />
@@ -558,6 +650,50 @@
             <span class="vlabel-badge">PART 2</span>
             <strong>SAM 2 + ProPainter</strong>
             <span>PSNR 14.40 &nbsp;·&nbsp; SSIM 0.2002</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-subheading">Part 3 — SAM 3 Variants</div>
+      <div class="video-grid-3">
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part3_propainter.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ProPainter</strong>
+            <span>Propagation-based baseline</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part3_diffueraser.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser</strong>
+            <span>Diffusion &nbsp;·&nbsp; best wild PSNR</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part3_diffueraser_se.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + DiffuEraser-SE</strong>
+            <span>Diffusion + side-effect mask</span>
+          </div>
+        </div>
+        <div class="video-card v-p3">
+          <video loop muted playsinline preload="none">
+            <source src="assets/videos/wild2_part3_rose.mp4" type="video/mp4" />
+          </video>
+          <div class="video-label">
+            <span class="vlabel-badge">PART 3</span>
+            <strong>SAM 3 + ROSE</strong>
+            <span>Transformer inpainting</span>
           </div>
         </div>
         <div class="video-card v-p3">
