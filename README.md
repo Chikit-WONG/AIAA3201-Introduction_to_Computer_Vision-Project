@@ -2,6 +2,8 @@
 
 Project page: https://chikit-wong.github.io/AIAA3201-Introduction_to_Computer_Vision-Project/
 
+Results archive: https://drive.google.com/drive/folders/1UoSjr2Qf0X2viou4RejZXAnbWXq4bL7Y?usp=sharing
+
 This repository contains the AIAA3201 final project for **Project 3: Video Object Removal & Inpainting**. The goal is to automatically identify dynamic foreground objects in a video, remove them, and restore the missing background using temporal information and video inpainting.
 
 The project follows the course requirement that all three parts are mandatory:
@@ -40,7 +42,7 @@ The project follows the course requirement that all three parts are mandatory:
 └── README.md
 ```
 
-Large files such as datasets, checkpoints, generated videos, `results/`, `models/`, and `external/` repositories are intentionally ignored by Git. Recreate them with the setup and run commands below.
+Large files such as datasets, checkpoints, generated videos, `results/`, `models/`, and `external/` repositories are intentionally ignored by Git. Recreate them with the setup and run commands below, or download the generated Part 1/2/3 results from the results archive linked above.
 
 ## Environment Setup
 
@@ -261,6 +263,8 @@ sbatch slurm_scripts/run_part3_method.slurm
 ## Output Layout
 
 Each part writes masks, frames, videos, logs, and metrics under its own `results/` directory.
+
+The complete generated outputs for Part 1, Part 2, and Part 3 are available in the shared results archive: https://drive.google.com/drive/folders/1UoSjr2Qf0X2viou4RejZXAnbWXq4bL7Y?usp=sharing. The archive is intended to mirror the local `part*/results/` folders, so the files can be inspected directly or placed back under the corresponding part directory for review.
 
 ```text
 part1/results/results_davis_full/<variant>/<sequence>/
